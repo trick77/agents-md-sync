@@ -186,3 +186,9 @@ Other hosts (GitHub, GitLab, Bitbucket Cloud) are not yet wired up. Adding one m
 - v1: one PR-host adapter implemented (Bitbucket Data Center).
 - v1: markdown partials only.
 - v1: one profile per target (polyglot targets are v2).
+
+## Releasing
+
+1. Bump `version` in `package.json` and commit.
+2. Create a GitHub Release with tag `vX.Y.Z` (must match `package.json`).
+3. The Release workflow publishes to npm with provenance.

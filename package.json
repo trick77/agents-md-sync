@@ -1,13 +1,40 @@
 {
   "name": "agents-md-sync",
   "version": "0.1.0",
-  "description": "Generate and sync AGENTS.md across Bitbucket Data Center repos from a central template repo.",
+  "description": "Sync AGENTS.md across many repositories from a central markdown template repo, via pull requests.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trick77/agents-md-sync.git"
+  },
+  "bugs": {
+    "url": "https://github.com/trick77/agents-md-sync/issues"
+  },
+  "homepage": "https://github.com/trick77/agents-md-sync#readme",
+  "keywords": [
+    "agents.md",
+    "ai",
+    "cli",
+    "markdown",
+    "template",
+    "sync",
+    "pull-request"
+  ],
   "type": "module",
   "bin": {
     "agents-md-sync": "dist/index.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
-    "build": "tsc && npm run check:samples",
+    "build": "tsc -p tsconfig.build.json",
     "test": "npm run check:samples && npm run lint && vitest run",
     "dev": "tsx src/index.ts",
     "lint": "eslint .",
@@ -15,7 +42,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "render:samples": "tsx scripts/render-samples.ts",
-    "check:samples": "tsx scripts/check-samples.ts"
+    "check:samples": "tsx scripts/check-samples.ts",
+    "prepublishOnly": "npm run build"
   },
   "engines": {
     "node": ">=20"
