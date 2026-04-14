@@ -31,7 +31,7 @@ Node/TypeScript CLI that composes an `AGENTS.md` from markdown partials held in 
 - `src/compose.ts` MUST be covered by unit tests — it is the only pure-logic module and the heart of the tool.
 - Network-touching code (`src/bitbucket.ts`, `src/sync.ts`) is tested via mocked `fetch` or integration tests against a sandbox repo, never against real production Bitbucket repos.
 - Run tests with `npm test` (vitest). Every PR must pass tests locally before opening.
-- **Sample outputs are golden fixtures.** `examples/sample-output-<profile>.md` is re-rendered on every build and test run by composing each profile in `templates/profiles/` against `templates/common/`. `npm run build` and `npm test` both invoke the render step. If a profile partial changes, the sample file must be updated in the same commit. CI fails if committed samples drift from what `compose.ts` produces.
+- **Sample outputs are golden fixtures.** `examples/sample-output-<profile>.md` is re-rendered on every build and test run by composing each profile in `examples/template-repo/profiles/` against `examples/template-repo/common/`. `npm run build` and `npm test` both invoke the render step. If a profile partial changes, the sample file must be updated in the same commit. CI fails if committed samples drift from what `compose.ts` produces.
 
 ## Review & Git
 

@@ -6,8 +6,8 @@ import { loadTemplate } from "../src/templateLoader.js";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const ROOT = resolve(HERE, "..");
-const TEMPLATES = resolve(ROOT, "templates");
 const EXAMPLES = resolve(ROOT, "examples");
+const TEMPLATES = resolve(EXAMPLES, "template-repo");
 const TEMPLATE_LABEL = "TOOLING/agents-md-templates";
 const FAKE_SHA = "<sha>";
 
