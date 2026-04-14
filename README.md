@@ -86,7 +86,10 @@ npx agents-md-sync --config targets.json --apply
 # Open a PR even when nothing changed (requires --apply)
 npx agents-md-sync --config targets.json --apply --force
 
-# Skip the clean-working-tree check on target repos (use for ephemeral CI clones)
+# Auto-stash local changes before sync and restore them after (dev machines)
+npx agents-md-sync --config targets.json --apply --autostash
+
+# Skip the clean-working-tree check entirely (ephemeral CI clones only — uncommitted changes WILL be discarded)
 npx agents-md-sync --config targets.json --apply --allow-dirty
 ```
 
@@ -154,7 +157,9 @@ Resolution for each `<!-- include: NAME.md -->` marker:
 ## Safety
 
 - Default run = preview only (no git writes, no push, no PR).
-- With `--apply`, the tool refuses to run against a dirty target checkout unless `--allow-dirty` is passed.
+- With `--apply`, the tool refuses to run against a dirty target checkout unless `--autostash` or `--allow-dirty` is passed.
+  - `--autostash` (recommended for dev machines): runs `git stash push --include-untracked` before touching the repo, restores the original branch and pops the stash in a `finally` block. If pop fails (extremely unlikely, since `AGENTS.md` and `.agents/*.md` are tool-owned and unlikely to collide with your work), your changes remain safely in `git stash list`.
+  - `--allow-dirty` (CI only): skips the check and lets the default-branch hard reset proceed — **destructive to uncommitted work**.
 - Force-push targets the tool-owned branch `feature/update-agents-md` only; the default branch is never touched.
 - Every sync commit carries an `X-AgentsMd-Sync-Source: <templateDir>@<sha>` trailer; the tool reads it on the next run to compute drift since the last sync.
 

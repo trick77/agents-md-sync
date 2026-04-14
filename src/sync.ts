@@ -1,0 +1,213 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import type { BitbucketClient } from "./bitbucket.js";
+import { buildHeader, compose } from "./compose.js";
+import type { Config, Target } from "./config.js";
+import { buildCommitMessage, buildPrDescription } from "./drift.js";
+import {
+  assertCleanWorkingTree,
+  commitSyncChanges,
+  detectDefaultBranch,
+  getHeadRef,
+  gitIn,
+  hasStagedChanges,
+  prepareTargetRepo,
+  pushBranch,
+  readLastSyncSha,
+  remoteToProjectRepo,
+  stashPop,
+  stashPush,
+  templateCommitsSince,
+  templateHeadSha,
+} from "./git.js";
+import { logger } from "./logger.js";
+import { loadTemplate } from "./templateLoader.js";
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname } from "node:path";
+
+const PR_TITLE = "chore: update AGENTS.md";
+const CUSTOM_SUFFIX = "-CUSTOM";
+
+export interface SyncOptions {
+  apply: boolean;
+  force: boolean;
+  allowDirty: boolean;
+  autostash: boolean;
+}
+
+export async function syncAll(
+  config: Config,
+  client: BitbucketClient | null,
+  opts: SyncOptions,
+): Promise<void> {
+  const templateDirAbs = resolve(config.localGitBaseDir, config.templateDir);
+  const templateGit = gitIn(templateDirAbs);
+  const templateSha = await templateHeadSha(templateGit);
+  const templateLabel = config.templateDir;
+
+  for (const target of config.targets) {
+    try {
+      await syncTarget(config, target, client, opts, {
+        templateDirAbs,
+        templateSha,
+        templateLabel,
+      });
+    } catch (err) {
+      logger.error(`sync failed for ${target.dir}:`, err);
+    }
+  }
+}
+
+interface TemplateCtx {
+  templateDirAbs: string;
+  templateSha: string;
+  templateLabel: string;
+}
+
+async function syncTarget(
+  config: Config,
+  target: Target,
+  client: BitbucketClient | null,
+  opts: SyncOptions,
+  ctx: TemplateCtx,
+): Promise<void> {
+  const targetDir = resolve(config.localGitBaseDir, target.dir);
+  logger.info(`▶ ${target.dir} (profile: ${target.profile})`);
+
+  const targetGit = gitIn(targetDir);
+  if (!opts.allowDirty && !opts.autostash) {
+    await assertCleanWorkingTree(targetGit);
+  }
+
+  const defaultBranch = await detectDefaultBranch(targetGit);
+  const prBranch = config.prBranch;
+
+  const template = await loadTemplate(ctx.templateDirAbs, target.profile, ctx.templateSha);
+  const customPartials = await readCustomPartials(targetDir, Object.keys(template.partials));
+
+  const header = buildHeader(ctx.templateLabel, ctx.templateSha);
+  const result = compose({
+    skeleton: template.skeleton,
+    centralPartials: template.partials,
+    customPartials,
+    skip: target.skip,
+    header,
+  });
+
+  if (result.missing.length > 0) {
+    throw new Error(`Skeleton references missing partials: ${result.missing.join(", ")}`);
+  }
+
+  const plannedWrites = buildPlannedWrites(result.agentsMd, result.mirroredPartials);
+
+  if (!opts.apply) {
+    logger.info(`  [preview] ${Object.keys(plannedWrites).length} file(s) would be considered for write`);
+    logger.info(`  --- composed AGENTS.md ---\n${result.agentsMd}`);
+    return;
+  }
+
+  if (!client) {
+    throw new Error("BitbucketClient is required for --apply runs");
+  }
+
+  let originalRef: string | null = null;
+  let stashed = false;
+  if (opts.autostash) {
+    originalRef = await getHeadRef(targetGit);
+    stashed = await stashPush(targetGit, `agents-md-sync autostash ${new Date().toISOString()}`);
+    if (stashed) logger.info(`  autostash: saved local changes (was on ${originalRef})`);
+  }
+
+  try {
+    await prepareTargetRepo(targetGit, defaultBranch, prBranch);
+
+    for (const [path, content] of Object.entries(plannedWrites)) {
+      const full = resolve(targetDir, path);
+      await mkdir(dirname(full), { recursive: true });
+      await writeFile(full, content, "utf8");
+    }
+
+    if (!(await hasStagedChanges(targetGit)) && !opts.force) {
+      logger.info(`  up to date`);
+      return;
+    }
+
+    const lastSync = await readLastSyncSha(targetGit, defaultBranch);
+    const lastSyncSha = lastSync?.sha ?? null;
+
+    const templateGit = gitIn(ctx.templateDirAbs);
+    const upstreamCommits = lastSyncSha
+      ? await templateCommitsSince(templateGit, lastSyncSha, target.profile)
+      : [];
+
+    const commitMessage = buildCommitMessage(ctx.templateLabel, ctx.templateSha);
+    await commitSyncChanges(targetGit, Object.keys(plannedWrites), commitMessage);
+    await pushBranch(targetGit, prBranch);
+    logger.info(`  pushed ${prBranch}`);
+
+    const remote = await targetGit.raw(["remote", "get-url", "origin"]);
+    const ref = remoteToProjectRepo(remote);
+
+    const description = buildPrDescription({
+      templateRepoLabel: ctx.templateLabel,
+      centralSha: ctx.templateSha,
+      lastSyncSha,
+      upstreamCommitsSinceLastSync: upstreamCommits,
+      included: result.included,
+      skipped: result.skipped,
+      withCustom: result.withCustom,
+    });
+
+    const existing = await client.findOpenPullRequest(ref, prBranch, defaultBranch);
+    if (existing) {
+      await client.updatePullRequestDescription(ref, existing.id, PR_TITLE, description);
+      logger.info(`  PR #${existing.id} updated ${existing.url}`);
+    } else {
+      const pr = await client.createPullRequest(ref, prBranch, defaultBranch, PR_TITLE, description);
+      logger.info(`  PR #${pr.id} ${pr.url}`);
+    }
+  } finally {
+    if (opts.autostash && originalRef) {
+      try {
+        await targetGit.checkout(originalRef);
+      } catch (err) {
+        logger.error(`  autostash: could not restore ${originalRef}:`, err);
+      }
+      if (stashed) {
+        try {
+          await stashPop(targetGit);
+          logger.info(`  autostash: restored local changes`);
+        } catch (err) {
+          logger.error(
+            `  autostash: pop failed — your changes are preserved in 'git stash list' in ${targetDir}:`,
+            err,
+          );
+        }
+      }
+    }
+  }
+}
+
+async function readCustomPartials(
+  targetDir: string,
+  partialNames: string[],
+): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  for (const name of partialNames) {
+    const path = resolve(targetDir, `.agents/${name}${CUSTOM_SUFFIX}.md`);
+    try {
+      out[name] = await readFile(path, "utf8");
+    } catch {
+      // absent is fine
+    }
+  }
+  return out;
+}
+
+function buildPlannedWrites(agentsMd: string, mirroredPartials: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = { "AGENTS.md": agentsMd };
+  for (const [name, content] of Object.entries(mirroredPartials)) {
+    out[`.agents/${name}.md`] = content.endsWith("\n") ? content : content + "\n";
+  }
+  return out;
+}

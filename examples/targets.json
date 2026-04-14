@@ -1,0 +1,21 @@
+{
+  "localGitBaseDir": "/Users/you/localgit",
+  "templateDir": "agents-md-templates",
+  "bitbucketBaseUrl": "https://bitbucket.example.com",
+  "prBranch": "feature/update-agents-md",
+  "targets": [
+    {
+      "dir": "my-spring-service",
+      "profile": "spring-boot-maven"
+    },
+    {
+      "dir": "my-gradle-service",
+      "profile": "spring-boot-gradle",
+      "skip": ["TESTING"]
+    },
+    {
+      "dir": "my-angular-app",
+      "profile": "angular"
+    }
+  ]
+}
