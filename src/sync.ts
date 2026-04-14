@@ -26,7 +26,6 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
 const PR_TITLE = "chore: update AGENTS.md";
-const CUSTOM_SUFFIX = "-CUSTOM";
 
 export interface SyncOptions {
   apply: boolean;
@@ -99,7 +98,7 @@ async function syncTarget(
     throw new Error(`Skeleton references missing partials: ${result.missing.join(", ")}`);
   }
 
-  const plannedWrites = buildPlannedWrites(result.agentsMd, result.mirroredPartials);
+  const plannedWrites = buildPlannedWrites(result.agentsMd);
 
   if (!opts.apply) {
     logger.info(`  [preview] ${Object.keys(plannedWrites).length} file(s) would be considered for write`);
@@ -206,7 +205,7 @@ async function readCustomPartials(
 ): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
   for (const name of partialNames) {
-    const path = resolve(targetDir, `.agents/${name}${CUSTOM_SUFFIX}.md`);
+    const path = resolve(targetDir, `.agents/${name}.md`);
     try {
       out[name] = await readFile(path, "utf8");
     } catch {
@@ -216,10 +215,6 @@ async function readCustomPartials(
   return out;
 }
 
-function buildPlannedWrites(agentsMd: string, mirroredPartials: Record<string, string>): Record<string, string> {
-  const out: Record<string, string> = { "AGENTS.md": agentsMd };
-  for (const [name, content] of Object.entries(mirroredPartials)) {
-    out[`.agents/${name}.md`] = content.endsWith("\n") ? content : content + "\n";
-  }
-  return out;
+function buildPlannedWrites(agentsMd: string): Record<string, string> {
+  return { "AGENTS.md": agentsMd };
 }
