@@ -1,15 +1,12 @@
 # agents-md-sync
 
 [![CI](https://img.shields.io/github/actions/workflow/status/trick77/agents-md-sync/ci.yaml?branch=master&label=CI)](https://github.com/trick77/agents-md-sync/actions/workflows/ci.yaml)
-[![Release](https://img.shields.io/github/v/release/trick77/agents-md-sync)](https://github.com/trick77/agents-md-sync/releases)
 [![npm](https://img.shields.io/npm/v/agents-md-sync)](https://www.npmjs.com/package/agents-md-sync)
-[![provenance](https://img.shields.io/npm/provenance/agents-md-sync)](https://www.npmjs.com/package/agents-md-sync)
 [![node](https://img.shields.io/node/v/agents-md-sync)](https://www.npmjs.com/package/agents-md-sync)
-[![types: TypeScript](https://img.shields.io/badge/types-TypeScript-blue)](https://www.typescriptlang.org/)
 
 **The problem.** Once you have more than a handful of repositories, keeping `AGENTS.md` consistent across all of them is painful. Copy-pasted instructions drift. Per-repo tweaks get lost when someone refreshes the shared boilerplate. Teams either stop updating the file or stop trusting it — either way, the AI agents working in those repos get stale or contradictory guidance.
 
-**What this does.** `agents-md-sync` keeps `AGENTS.md` in sync across many repositories from a single central template repo. You edit shared instructions in one place; each target repo can still add its own `-CUSTOM.md` overrides that the tool never touches. Changes land as pull requests, never direct pushes, so every update is reviewable.
+**What this does.** `agents-md-sync` keeps `AGENTS.md` in sync across many repositories from a single central template repo. You edit shared instructions in one place; each target repo can still add its own `-CUSTOM.md` overrides that the tool never touches. By default changes are pushed to a tool-owned branch; opt in with `--pr` to also open or update a pull request for review.
 
 **How it works.** Local-git-first: the tool operates on whatever local working copies of the target repos and the central template repo you already have on disk — the same checkouts you use for daily development are fine. It composes `AGENTS.md` from markdown partials, mirrors partials into `.agents/`, and commits once per sync on a tool-owned branch that it force-pushes to `origin`. All of this uses plain `git` against whatever remote your repos already use. A thin, pluggable adapter then opens or updates the pull request on your code host (see [PR hosting](#pr-hosting) for which hosts are wired up today).
 
@@ -51,7 +48,7 @@ For each target working copy listed in the config:
 3. Reads any `.agents/<NAME>-CUSTOM.md` files already present in the target checkout.
 4. Composes `AGENTS.md` and mirrors partials into `.agents/`.
 5. Creates/resets the local `feature/update-agents-md` branch, commits changes, force-pushes.
-6. Calls the configured PR host adapter to create or update the PR.
+6. If `--pr` is passed, calls the configured PR host adapter to create or update the pull request. Otherwise the sync stops after the push.
 
 One commit per sync. Git uses your existing credentials (SSH key or credential helper). Only the PR create/update step hits an HTTP API; see [PR hosting](#pr-hosting) for what that requires.
 
@@ -59,7 +56,7 @@ One commit per sync. Git uses your existing credentials (SSH key or credential h
 
 1. Node 22+.
 2. Local working copies of the template repo and each target repo on the same machine where the tool runs. If you already have them checked out for normal work, use those paths directly — the tool does no cloning.
-3. An HTTP access token for your PR host, used only when running with `--apply`. See [PR hosting](#pr-hosting) for the env var name and token scopes.
+3. An HTTP access token for your PR host, used only when running with `--apply --pr`. See [PR hosting](#pr-hosting) for the env var name and token scopes.
 
 ## Install
 
@@ -70,17 +67,20 @@ npm run build
 
 ## Usage
 
-**By default the tool never writes anything.** It composes and prints previews. Pass `--apply` to commit, push, and open PRs.
+**By default the tool never writes anything.** It composes and prints previews. Pass `--apply` to commit and push. PR creation is **opt-in**: add `--pr` to also open or update a pull request.
 
 ```bash
 # Preview (default) — compose and print, no git writes, no push, no PR
 npx agents-md-sync --config targets.json
 
-# Actually apply: commit, force-push feature/update-agents-md, create/update PR
+# Commit and force-push feature/update-agents-md — no PR is opened
 npx agents-md-sync --config targets.json --apply
 
-# Open a PR even when nothing changed (requires --apply)
-npx agents-md-sync --config targets.json --apply --force
+# Commit, push, and create/update the PR (requires BITBUCKET_TOKEN)
+npx agents-md-sync --config targets.json --apply --pr
+
+# Open a PR even when nothing changed (requires --apply --pr)
+npx agents-md-sync --config targets.json --apply --pr --force
 
 # Auto-stash local changes before sync and restore them after (dev machines)
 npx agents-md-sync --config targets.json --apply --autostash
@@ -150,6 +150,8 @@ Resolution for each `<!-- include: NAME.md -->` marker:
 3. Else if `common/NAME.md` exists → use that.
 4. Else → error.
 
+Write partials **for the agent**, not for humans. Every line should shape a decision the agent actually makes while writing or pushing code — constraints on tools, tests, dependencies, commit hygiene. Human-workflow items like "PRs need one approving review" or "keep diffs under 400 lines" belong in `CONTRIBUTING.md` or branch-protection rules; in an `AGENTS.md` they just burn context window. The example partials under `examples/template-repo/` show the intended shape.
+
 ## Safety
 
 - Default run = preview only (no git writes, no push, no PR).
@@ -161,8 +163,8 @@ Resolution for each `<!-- include: NAME.md -->` marker:
 
 ## PR behavior
 
-- Branch: `feature/update-agents-md` (force-pushed each run).
-- If an open PR from that branch exists, its description is updated rather than a new PR being created.
+- `--apply` alone commits and force-pushes the tool-owned branch `feature/update-agents-md`, but does **not** open or touch any pull request. No host API token is required.
+- `--apply --pr` additionally opens a PR from that branch, or updates the description of an existing open PR instead of creating a duplicate. This step requires `BITBUCKET_TOKEN`.
 - PR body includes included/skipped partials and the list of template commits since the last sync.
 
 ## PR hosting
@@ -173,7 +175,7 @@ Everything up to and including the `git push` of the tool-owned branch is host-a
 
 - **Bitbucket Data Center** — uses `/rest/api/1.0/` endpoints. Requires:
   - `bitbucketBaseUrl` in `targets.json`.
-  - `BITBUCKET_TOKEN` env var (HTTP access token with repo-write / PR-create scopes) when running with `--apply`.
+  - `BITBUCKET_TOKEN` env var (HTTP access token with repo-write / PR-create scopes) when running with `--apply --pr`.
 
 Other hosts (GitHub, GitLab, Bitbucket Cloud) are not yet wired up. Adding one means implementing a small client with `findOpenPullRequest` / `createPullRequest` / `updatePullRequestDescription` — the rest of the pipeline doesn't care.
 

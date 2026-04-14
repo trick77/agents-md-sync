@@ -30,6 +30,7 @@ const CUSTOM_SUFFIX = "-CUSTOM";
 
 export interface SyncOptions {
   apply: boolean;
+  pr: boolean;
   force: boolean;
   allowDirty: boolean;
   autostash: boolean;
@@ -106,8 +107,16 @@ async function syncTarget(
     return;
   }
 
-  if (!client) {
-    throw new Error("BitbucketClient is required for --apply runs");
+  if (opts.pr && !client) {
+    throw new Error("BitbucketClient is required for --apply --pr runs");
+  }
+
+  if (opts.force && !opts.pr) {
+    logger.warn("  --force has no effect without --pr (PR step is skipped)");
+  }
+
+  if (!opts.pr) {
+    logger.info("  PR step skipped (pass --pr to open a pull request)");
   }
 
   let originalRef: string | null = null;
@@ -145,26 +154,29 @@ async function syncTarget(
     await pushBranch(targetGit, prBranch);
     logger.info(`  pushed ${prBranch}`);
 
-    const remote = await targetGit.raw(["remote", "get-url", "origin"]);
-    const ref = remoteToProjectRepo(remote);
+    if (opts.pr && client) {
+      const prClient = client;
+      const remote = await targetGit.raw(["remote", "get-url", "origin"]);
+      const ref = remoteToProjectRepo(remote);
 
-    const description = buildPrDescription({
-      templateRepoLabel: ctx.templateLabel,
-      centralSha: ctx.templateSha,
-      lastSyncSha,
-      upstreamCommitsSinceLastSync: upstreamCommits,
-      included: result.included,
-      skipped: result.skipped,
-      withCustom: result.withCustom,
-    });
+      const description = buildPrDescription({
+        templateRepoLabel: ctx.templateLabel,
+        centralSha: ctx.templateSha,
+        lastSyncSha,
+        upstreamCommitsSinceLastSync: upstreamCommits,
+        included: result.included,
+        skipped: result.skipped,
+        withCustom: result.withCustom,
+      });
 
-    const existing = await client.findOpenPullRequest(ref, prBranch, defaultBranch);
-    if (existing) {
-      await client.updatePullRequestDescription(ref, existing.id, PR_TITLE, description);
-      logger.info(`  PR #${existing.id} updated ${existing.url}`);
-    } else {
-      const pr = await client.createPullRequest(ref, prBranch, defaultBranch, PR_TITLE, description);
-      logger.info(`  PR #${pr.id} ${pr.url}`);
+      const existing = await prClient.findOpenPullRequest(ref, prBranch, defaultBranch);
+      if (existing) {
+        await prClient.updatePullRequestDescription(ref, existing.id, PR_TITLE, description);
+        logger.info(`  PR #${existing.id} updated ${existing.url}`);
+      } else {
+        const pr = await prClient.createPullRequest(ref, prBranch, defaultBranch, PR_TITLE, description);
+        logger.info(`  PR #${pr.id} ${pr.url}`);
+      }
     }
   } finally {
     if (opts.autostash && originalRef) {

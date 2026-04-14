@@ -1,7 +1,8 @@
 ## Review
 
-- Open every change as a PR. Never push directly to `main`/`master`.
-- Branch names: `feat/<short>`, `fix/<short>`, `chore/<short>`.
-- At least one approving review is required before merge.
-- Keep PRs small — under ~400 lines of diff where possible.
-- Resolve merge conflicts; do not overwrite with force-push except on your own feature branches.
+- One logical change per PR — do not bundle refactors with feature work.
+- Include tests for new behavior in the same PR that introduces it.
+- Do not force-push shared branches. Force-push is only acceptable on
+  your own feature branch.
+- Resolve merge conflicts by inspecting both sides; never drop changes
+  to "just make it compile".
