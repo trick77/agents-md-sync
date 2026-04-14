@@ -1,8 +1,10 @@
-# agents-md-scaffolder
+# agents-md-sync
 
-A Node/TypeScript CLI that generates and syncs `AGENTS.md` across many Bitbucket Data Center repositories. `AGENTS.md` is composed from markdown partials held in a central template repo, with optional per-repo customizations. Changes are delivered as pull requests, never direct pushes.
+**The problem.** Once you have more than a handful of repositories, keeping `AGENTS.md` consistent across all of them is painful. Copy-pasted instructions drift. Per-repo tweaks get lost when someone refreshes the shared boilerplate. Teams either stop updating the file or stop trusting it — either way, the AI agents working in those repos get stale or contradictory guidance.
 
-The tool is **local-git-first**: all target repos and the central template repo must be cloned locally under one base directory. The tool operates on those checkouts, produces a single commit per sync, and uses Bitbucket REST only to open/update the PR.
+**What this does.** `agents-md-sync` keeps `AGENTS.md` in sync across many Bitbucket Data Center repositories from a single central template repo. You edit shared instructions in one place; each target repo can still add its own `-CUSTOM.md` overrides that the tool never touches. Changes land as pull requests, never direct pushes, so every update is reviewable.
+
+**How it works.** Local-git-first: all target repos and the central template repo are cloned locally under one base directory. The tool composes `AGENTS.md` from markdown partials, commits once per sync on a tool-owned branch, and uses Bitbucket REST only to open or update the PR.
 
 ## Model
 
@@ -80,16 +82,16 @@ npm run build
 
 ```bash
 # Preview (default) — compose and print, no git writes, no push, no PR
-npx agents-md-scaffolder --config targets.json
+npx agents-md-sync --config targets.json
 
 # Actually apply: commit, force-push feature/update-agents-md, create/update PR
-npx agents-md-scaffolder --config targets.json --apply
+npx agents-md-sync --config targets.json --apply
 
 # Open a PR even when nothing changed (requires --apply)
-npx agents-md-scaffolder --config targets.json --apply --force
+npx agents-md-sync --config targets.json --apply --force
 
 # Skip the clean-working-tree check on target repos (use for ephemeral CI clones)
-npx agents-md-scaffolder --config targets.json --apply --allow-dirty
+npx agents-md-sync --config targets.json --apply --allow-dirty
 ```
 
 ## Config (`targets.json`)
@@ -158,7 +160,7 @@ Resolution for each `<!-- include: NAME.md -->` marker:
 - Default run = preview only (no git writes, no push, no PR).
 - With `--apply`, the tool refuses to run against a dirty target checkout unless `--allow-dirty` is passed.
 - Force-push targets the tool-owned branch `feature/update-agents-md` only; the default branch is never touched.
-- Every scaffolder commit carries an `X-Scaffolder-Source: <templateDir>@<sha>` trailer; the tool reads it on the next run to compute drift since the last sync.
+- Every sync commit carries an `X-AgentsMd-Sync-Source: <templateDir>@<sha>` trailer; the tool reads it on the next run to compute drift since the last sync.
 
 ## PR behavior
 
