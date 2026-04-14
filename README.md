@@ -6,9 +6,9 @@
 
 **The problem.** Once you have more than a handful of repositories, keeping `AGENTS.md` consistent across all of them is painful. Copy-pasted instructions drift. Per-repo tweaks get lost when someone refreshes the shared boilerplate. Teams either stop updating the file or stop trusting it — either way, the AI agents working in those repos get stale or contradictory guidance.
 
-**What this does.** `agents-md-sync` keeps `AGENTS.md` in sync across many repositories from a single central template repo. You edit shared instructions in one place; each target repo can still add its own `-CUSTOM.md` overrides that the tool never touches. By default changes are pushed to a tool-owned branch; opt in with `--pr` to also open or update a pull request for review.
+**What this does.** `agents-md-sync` keeps `AGENTS.md` in sync across many repositories from a single central template repo. You edit shared instructions in one place; each target repo can still add its own per-section addenda under `.agents/` that the tool never touches. By default changes are pushed to a tool-owned branch; opt in with `--pr` to also open or update a pull request for review.
 
-**How it works.** Local-git-first: the tool operates on whatever local working copies of the target repos and the central template repo you already have on disk — the same checkouts you use for daily development are fine. It composes `AGENTS.md` from markdown partials, mirrors partials into `.agents/`, and commits once per sync on a tool-owned branch that it force-pushes to `origin`. All of this uses plain `git` against whatever remote your repos already use. A thin, pluggable adapter then opens or updates the pull request on your code host (see [PR hosting](#pr-hosting) for which hosts are wired up today).
+**How it works.** Local-git-first: the tool operates on whatever local working copies of the target repos and the central template repo you already have on disk — the same checkouts you use for daily development are fine. It composes `AGENTS.md` from markdown partials and commits once per sync on a tool-owned branch that it force-pushes to `origin`. All of this uses plain `git` against whatever remote your repos already use. A thin, pluggable adapter then opens or updates the pull request on your code host (see [PR hosting](#pr-hosting) for which hosts are wired up today).
 
 ## Model
 
@@ -17,27 +17,27 @@ Each target repo ends up with:
 ```
 <target repo>/
 ├── AGENTS.md                 # generated; always overwritten by the tool
-└── .agents/
-    ├── CODING.md             # mirror of central partial; always overwritten
-    ├── CODING-CUSTOM.md      # optional, repo-owned; NEVER touched by the tool
-    ├── TESTING.md            # mirror of central partial; always overwritten
-    ├── TESTING-CUSTOM.md     # optional, repo-owned
+└── .agents/                  # optional; 100% repo-owned, never written by the tool
+    ├── CODING.md             # optional addendum to the central CODING partial
+    ├── TESTING.md            # optional addendum to the central TESTING partial
     └── ...
 ```
 
 Ownership is explicit:
-- Files without the `-CUSTOM` suffix are **tool-owned**. They mirror the central template and are overwritten on every run.
-- Files with the `-CUSTOM` suffix are **repo-owned**. The tool reads them but never writes or deletes them.
+- `AGENTS.md` is **tool-owned**. It is overwritten on every run.
+- Everything under `.agents/` is **repo-owned**. The tool reads these files as addenda when composing `AGENTS.md`, but never writes or deletes them.
 
 `AGENTS.md` is composed by expanding `<!-- include: NAME.md -->` markers in a skeleton. For each include, the section content is:
 
 ```
-<repo's NAME-CUSTOM.md, if it exists>
+<repo's .agents/NAME.md, if it exists>
 <blank line>
 <central NAME.md>
 ```
 
-CUSTOM content goes on top so repo-specific rules get read first — by humans scanning and by LLMs where earlier tokens carry more weight.
+The local addendum goes on top so repo-specific rules get read first — by humans scanning and by LLMs where earlier tokens carry more weight.
+
+> **Migrating from a previous version?** Rename any `.agents/NAME-CUSTOM.md` to `.agents/NAME.md` and delete any remaining tool-generated mirror files that used to live under `.agents/`. The tool no longer reads the `-CUSTOM.md` suffix and no longer writes mirror copies of central partials.
 
 ## What it does
 
@@ -45,8 +45,8 @@ For each target working copy listed in the config:
 
 1. `git fetch origin` and hard-reset to the default branch.
 2. Reads the profile skeleton + partials from the local template checkout.
-3. Reads any `.agents/<NAME>-CUSTOM.md` files already present in the target checkout.
-4. Composes `AGENTS.md` and mirrors partials into `.agents/`.
+3. Reads any `.agents/<NAME>.md` files already present in the target checkout and treats them as per-section addenda.
+4. Composes `AGENTS.md`.
 5. Creates/resets the local `feature/update-agents-md` branch, commits changes, force-pushes.
 6. If `--pr` is passed, calls the configured PR host adapter to create or update the pull request. Otherwise the sync stops after the push.
 
@@ -156,7 +156,7 @@ Write partials **for the agent**, not for humans. Every line should shape a deci
 
 - Default run = preview only (no git writes, no push, no PR).
 - With `--apply`, the tool refuses to run against a dirty target checkout unless `--autostash` or `--allow-dirty` is passed.
-  - `--autostash` (recommended for dev machines): runs `git stash push --include-untracked` before touching the repo, restores the original branch and pops the stash in a `finally` block. If pop fails (extremely unlikely, since `AGENTS.md` and `.agents/*.md` are tool-owned and unlikely to collide with your work), your changes remain safely in `git stash list`.
+  - `--autostash` (recommended for dev machines): runs `git stash push --include-untracked` before touching the repo, restores the original branch and pops the stash in a `finally` block. If pop fails (extremely unlikely, since `AGENTS.md` is tool-owned and unlikely to collide with your work), your changes remain safely in `git stash list`.
   - `--allow-dirty` (CI only): skips the check and lets the default-branch hard reset proceed — **destructive to uncommitted work**.
 - Force-push targets the tool-owned branch `feature/update-agents-md` only; the default branch is never touched.
 - Every sync commit carries an `X-AgentsMd-Sync-Source: <templateDir>@<sha>` trailer; the tool reads it on the next run to compute drift since the last sync.

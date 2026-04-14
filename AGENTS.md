@@ -58,6 +58,6 @@ npx tsx src/index.ts --config examples/targets.json --dry-run
 
 - Do not push directly to `master`/`main`.
 - Do not commit secrets, tokens, or `targets.json` files that contain real Bitbucket URLs/credentials. Add a `.env` and `examples/targets.json` with dummy values only.
-- Do not touch any file in a target repo's `.agents/` directory that matches `*-CUSTOM.md`. Those are repo-owned. The base `.agents/<NAME>.md` files ARE tool-owned and should be overwritten on every run.
+- Do not touch any file in a target repo's `.agents/` directory. That directory is 100% repo-owned — the tool reads `.agents/<NAME>.md` files as per-section addenda when composing `AGENTS.md`, but only writes `AGENTS.md` itself.
 - Do not skip pre-commit hooks (`--no-verify`) or Git signing without explicit user approval.
 - Do not add support for Bitbucket Cloud or GitHub in v1 — it's out of scope.

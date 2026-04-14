@@ -48,7 +48,7 @@ export function buildPrDescription(input: DriftInput): string {
     lines.push(`- Skipped: ${input.skipped.map(backtick).join(", ")}`);
   }
   if (input.withCustom.length > 0) {
-    lines.push(`- With \`-CUSTOM.md\` addendum: ${input.withCustom.map(backtick).join(", ")}`);
+    lines.push(`- With local addendum: ${input.withCustom.map(backtick).join(", ")}`);
   }
   lines.push("");
   lines.push("## Drift since last sync");
