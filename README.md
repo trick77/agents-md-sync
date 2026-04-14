@@ -2,9 +2,9 @@
 
 **The problem.** Once you have more than a handful of repositories, keeping `AGENTS.md` consistent across all of them is painful. Copy-pasted instructions drift. Per-repo tweaks get lost when someone refreshes the shared boilerplate. Teams either stop updating the file or stop trusting it — either way, the AI agents working in those repos get stale or contradictory guidance.
 
-**What this does.** `agents-md-sync` keeps `AGENTS.md` in sync across many Bitbucket Data Center repositories from a single central template repo. You edit shared instructions in one place; each target repo can still add its own `-CUSTOM.md` overrides that the tool never touches. Changes land as pull requests, never direct pushes, so every update is reviewable.
+**What this does.** `agents-md-sync` keeps `AGENTS.md` in sync across many repositories from a single central template repo. You edit shared instructions in one place; each target repo can still add its own `-CUSTOM.md` overrides that the tool never touches. Changes land as pull requests, never direct pushes, so every update is reviewable.
 
-**How it works.** Local-git-first: all target repos and the central template repo are cloned locally under one base directory. The tool composes `AGENTS.md` from markdown partials, commits once per sync on a tool-owned branch, and uses Bitbucket REST only to open or update the PR.
+**How it works.** Local-git-first: all target repos and the central template repo are cloned locally under one base directory. The tool composes `AGENTS.md` from markdown partials, mirrors partials into `.agents/`, and commits once per sync on a tool-owned branch that it force-pushes to `origin`. All of this uses plain `git` against whatever remote your repos already use. A thin, pluggable adapter then opens or updates the pull request on your code host (see [PR hosting](#pr-hosting) for which hosts are wired up today).
 
 ## Model
 
@@ -44,9 +44,9 @@ For each target directory under your `localGitBaseDir`:
 3. Reads any `.agents/<NAME>-CUSTOM.md` files already present in the target checkout.
 4. Composes `AGENTS.md` and mirrors partials into `.agents/`.
 5. Creates/resets the local `feature/update-agents-md` branch, commits changes, force-pushes.
-6. Calls Bitbucket REST to create or update the PR.
+6. Calls the configured PR host adapter to create or update the PR.
 
-One commit per sync. No Bitbucket REST reads; git uses your existing credentials (SSH key or credential helper). Only PR create/update needs `BITBUCKET_TOKEN`.
+One commit per sync. Git uses your existing credentials (SSH key or credential helper). Only the PR create/update step hits an HTTP API; see [PR hosting](#pr-hosting) for what that requires.
 
 ## Prerequisites
 
@@ -63,11 +63,7 @@ One commit per sync. No Bitbucket REST reads; git uses your existing credentials
    # ...
    ```
 
-3. A Bitbucket Data Center HTTP access token for PR create/update (only when using `--apply`):
-
-   ```bash
-   export BITBUCKET_TOKEN=...
-   ```
+3. An HTTP access token for your PR host, used only when running with `--apply`. See [PR hosting](#pr-hosting) for the env var name and token scopes.
 
 ## Install
 
@@ -168,8 +164,20 @@ Resolution for each `<!-- include: NAME.md -->` marker:
 - If an open PR from that branch exists, its description is updated rather than a new PR being created.
 - PR body includes included/skipped partials and the list of template commits since the last sync.
 
+## PR hosting
+
+Everything up to and including the `git push` of the tool-owned branch is host-agnostic and goes through plain git against whatever remote your target repos already use. The only host-specific piece is the adapter that opens or updates the pull request.
+
+**Implemented today:**
+
+- **Bitbucket Data Center** — uses `/rest/api/1.0/` endpoints. Requires:
+  - `bitbucketBaseUrl` in `targets.json`.
+  - `BITBUCKET_TOKEN` env var (HTTP access token with repo-write / PR-create scopes) when running with `--apply`.
+
+Other hosts (GitHub, GitLab, Bitbucket Cloud) are not yet wired up. Adding one means implementing a small client with `findOpenPullRequest` / `createPullRequest` / `updatePullRequestDescription` — the rest of the pipeline doesn't care.
+
 ## Scope
 
-- v1: Bitbucket Data Center only.
+- v1: one PR-host adapter implemented (Bitbucket Data Center).
 - v1: markdown partials only.
 - v1: one profile per target (polyglot targets are v2).
