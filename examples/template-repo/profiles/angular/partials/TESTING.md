@@ -1,6 +1,6 @@
 ## Testing
 
-- Framework: Jasmine + Karma by default (Angular CLI default). Projects on Vitest/Jest should override this via `TESTING-CUSTOM.md`.
+- Framework: Jasmine + Karma by default (Angular CLI default). Projects on Vitest/Jest should override this via `.agents/TESTING.md`.
 - Use `TestBed.configureTestingModule` with standalone components in `imports`, not `declarations`.
 - Prefer `ComponentFixture` + DOM queries for component tests. Use `HarnessLoader` for Angular Material components.
 - Mock HTTP with `HttpTestingController` (`provideHttpClientTesting()`).
