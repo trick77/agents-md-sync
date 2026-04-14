@@ -1,10 +1,17 @@
 # agents-md-sync
 
+[![CI](https://img.shields.io/github/actions/workflow/status/trick77/agents-md-sync/ci.yaml?branch=master&label=CI)](https://github.com/trick77/agents-md-sync/actions/workflows/ci.yaml)
+[![Release](https://img.shields.io/github/v/release/trick77/agents-md-sync)](https://github.com/trick77/agents-md-sync/releases)
+[![npm](https://img.shields.io/npm/v/agents-md-sync)](https://www.npmjs.com/package/agents-md-sync)
+[![provenance](https://img.shields.io/npm/provenance/agents-md-sync)](https://www.npmjs.com/package/agents-md-sync)
+[![node](https://img.shields.io/node/v/agents-md-sync)](https://www.npmjs.com/package/agents-md-sync)
+[![types: TypeScript](https://img.shields.io/badge/types-TypeScript-blue)](https://www.typescriptlang.org/)
+
 **The problem.** Once you have more than a handful of repositories, keeping `AGENTS.md` consistent across all of them is painful. Copy-pasted instructions drift. Per-repo tweaks get lost when someone refreshes the shared boilerplate. Teams either stop updating the file or stop trusting it — either way, the AI agents working in those repos get stale or contradictory guidance.
 
 **What this does.** `agents-md-sync` keeps `AGENTS.md` in sync across many repositories from a single central template repo. You edit shared instructions in one place; each target repo can still add its own `-CUSTOM.md` overrides that the tool never touches. Changes land as pull requests, never direct pushes, so every update is reviewable.
 
-**How it works.** Local-git-first: all target repos and the central template repo are cloned locally under one base directory. The tool composes `AGENTS.md` from markdown partials, mirrors partials into `.agents/`, and commits once per sync on a tool-owned branch that it force-pushes to `origin`. All of this uses plain `git` against whatever remote your repos already use. A thin, pluggable adapter then opens or updates the pull request on your code host (see [PR hosting](#pr-hosting) for which hosts are wired up today).
+**How it works.** Local-git-first: the tool operates on whatever local working copies of the target repos and the central template repo you already have on disk — the same checkouts you use for daily development are fine. It composes `AGENTS.md` from markdown partials, mirrors partials into `.agents/`, and commits once per sync on a tool-owned branch that it force-pushes to `origin`. All of this uses plain `git` against whatever remote your repos already use. A thin, pluggable adapter then opens or updates the pull request on your code host (see [PR hosting](#pr-hosting) for which hosts are wired up today).
 
 ## Model
 
@@ -37,7 +44,7 @@ CUSTOM content goes on top so repo-specific rules get read first — by humans s
 
 ## What it does
 
-For each target directory under your `localGitBaseDir`:
+For each target working copy listed in the config:
 
 1. `git fetch origin` and hard-reset to the default branch.
 2. Reads the profile skeleton + partials from the local template checkout.
@@ -50,19 +57,8 @@ One commit per sync. Git uses your existing credentials (SSH key or credential h
 
 ## Prerequisites
 
-1. Node 20+.
-2. A base directory containing local clones of:
-   - the central template repo (e.g. `agents-md-templates`);
-   - each target repo you want to sync.
-
-   ```bash
-   mkdir -p /Users/you/localgit
-   cd /Users/you/localgit
-   git clone ssh://git@bitbucket.company.com/TOOLING/agents-md-templates.git
-   git clone ssh://git@bitbucket.company.com/ABC/my-spring-service.git
-   # ...
-   ```
-
+1. Node 22+.
+2. Local working copies of the template repo and each target repo on the same machine where the tool runs. If you already have them checked out for normal work, use those paths directly — the tool does no cloning.
 3. An HTTP access token for your PR host, used only when running with `--apply`. See [PR hosting](#pr-hosting) for the env var name and token scopes.
 
 ## Install
@@ -103,7 +99,7 @@ npx agents-md-sync --config targets.json --apply --allow-dirty
   "prBranch": "feature/update-agents-md",
   "targets": [
     {
-      "dir": "my-spring-service",
+      "dir": "/Users/you/code/my-spring-service",
       "profile": "spring-boot-maven"
     },
     {
@@ -115,12 +111,12 @@ npx agents-md-sync --config targets.json --apply --allow-dirty
 }
 ```
 
-- `localGitBaseDir` — parent directory holding the template and target clones.
-- `templateDir` — name of the template clone under `localGitBaseDir`.
+- `localGitBaseDir` — base directory used only to resolve relative `dir` entries below. Absolute paths in `dir` ignore it.
+- `templateDir` — path to the template working copy. Relative to `localGitBaseDir`, or absolute.
 - `bitbucketBaseUrl` — used for PR create/update.
 - `prBranch` — optional; branch name the tool pushes to. Default `feature/update-agents-md`. Force-pushed on every run (tool-owned).
 - Each target:
-  - `dir` — directory name under `localGitBaseDir`.
+  - `dir` — path to the target working copy. Relative to `localGitBaseDir`, or absolute.
   - `profile` — selects `profiles/<name>/` in the template repo.
   - `skip` — optional list of partial names to omit.
 
