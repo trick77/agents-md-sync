@@ -4,7 +4,7 @@ Instructions for AI coding agents working on this repository. For what the tool 
 
 ## Project
 
-Node/TypeScript CLI that composes an `AGENTS.md` from markdown partials held in a central Bitbucket template repo and opens pull requests against target Bitbucket Data Center repos. Greenfield — currently only README and this file exist.
+Node/TypeScript CLI that composes an `AGENTS.md` from markdown partials held in a central Bitbucket template repo, commits and pushes the result to a tool-owned branch on each target Bitbucket Data Center repo, and — when `--pr` is passed — opens or updates a pull request for that branch. Greenfield — currently only README and this file exist.
 
 ## Stack
 
