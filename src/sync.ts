@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { BitbucketClient } from "./bitbucket.js";
 import { buildHeader, compose } from "./compose.js";
@@ -83,7 +83,7 @@ async function syncTarget(
   const prBranch = config.prBranch;
 
   const template = await loadTemplate(ctx.templateDirAbs, target.profile, ctx.templateSha);
-  const customPartials = await readCustomPartials(targetDir, Object.keys(template.partials));
+  const customPartials = await readCustomPartials(targetDir);
 
   const header = buildHeader(ctx.templateLabel, ctx.templateSha);
   const result = compose({
@@ -199,18 +199,19 @@ async function syncTarget(
   }
 }
 
-async function readCustomPartials(
-  targetDir: string,
-  partialNames: string[],
-): Promise<Record<string, string>> {
+async function readCustomPartials(targetDir: string): Promise<Record<string, string>> {
+  const dir = resolve(targetDir, ".agents");
   const out: Record<string, string> = {};
-  for (const name of partialNames) {
-    const path = resolve(targetDir, `.agents/${name}.md`);
-    try {
-      out[name] = await readFile(path, "utf8");
-    } catch {
-      // absent is fine
-    }
+  let files: string[];
+  try {
+    files = await readdir(dir);
+  } catch {
+    return out;
+  }
+  for (const f of files) {
+    if (!f.endsWith(".md")) continue;
+    const name = f.replace(/\.md$/, "");
+    out[name] = await readFile(resolve(dir, f), "utf8");
   }
   return out;
 }
