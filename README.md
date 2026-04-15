@@ -4,11 +4,11 @@
 [![npm](https://img.shields.io/npm/v/agents-md-sync)](https://www.npmjs.com/package/agents-md-sync)
 [![node](https://img.shields.io/node/v/agents-md-sync)](https://www.npmjs.com/package/agents-md-sync)
 
-**The problem.** Once you have more than a handful of repositories, keeping `AGENTS.md` consistent across all of them is painful. Copy-pasted instructions drift. Per-repo tweaks get lost when someone refreshes the shared boilerplate. Teams either stop updating the file or stop trusting it — either way, the AI agents working in those repos get stale or contradictory guidance.
+**The problem.** Once you have more than a handful of repositories, keeping `AGENTS.md` consistent across all of them is painful. Copy-pasted instructions drift, and per-repo tweaks get lost when someone refreshes the shared boilerplate. Teams either stop updating the file or stop trusting it — either way, the AI agents working in those repos get stale or contradictory guidance.
 
-**What this does.** `agents-md-sync` keeps `AGENTS.md` in sync across many repositories from a single central template repo. You edit shared instructions in one place; each target repo can still add its own per-section addenda under `.agents/` that the tool never touches. By default changes are pushed to a tool-owned branch; opt in with `--pr` to also open or update a pull request for review.
+**What this does.** `agents-md-sync` keeps `AGENTS.md` in sync across many repositories from a single central template repo. You edit shared instructions in one place; each target repo can still add its own per-section addenda under `.agents/` that the tool never touches.
 
-**How it works.** Local-git-first: the tool operates on whatever local working copies of the target repos and the central template repo you already have on disk — the same checkouts you use for daily development are fine. It composes `AGENTS.md` from markdown partials and commits once per sync on a tool-owned branch that it force-pushes to `origin`. All of this uses plain `git` against whatever remote your repos already use. A thin, pluggable adapter then opens or updates the pull request on your code host (see [PR hosting](#pr-hosting) for which hosts are wired up today).
+**How it works.** Local-git-first: the tool operates on whatever local working copies of the target repos and the central template repo you already have on disk — the same checkouts you use for daily development are fine. It composes `AGENTS.md` from markdown partials and commits once per sync on a tool-owned branch that it force-pushes to `origin`. A thin, pluggable adapter then opens or updates the pull request on your code host (see [PR hosting](#pr-hosting) for which hosts are wired up today).
 
 ## Model
 
