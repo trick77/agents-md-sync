@@ -59,9 +59,14 @@ One commit per sync. Git uses your existing credentials (SSH key or credential h
 ## Install
 
 ```bash
-npm install
-npm run build
+# Run without installing (recommended — always fetches the latest version)
+npx agents-md-sync --config targets.json
+
+# Or install globally
+npm install -g agents-md-sync
 ```
+
+To work on the tool itself, see [From source](#from-source).
 
 ## Usage
 
@@ -185,6 +190,16 @@ Other hosts (GitHub, GitLab, Bitbucket Cloud) are not yet wired up. Adding one m
 - v1: one PR-host adapter implemented (Bitbucket Data Center).
 - v1: markdown partials only.
 - v1: one profile per target (polyglot targets are v2).
+
+## From source
+
+```bash
+git clone https://github.com/trick77/agents-md-sync.git
+cd agents-md-sync
+npm install
+npm run build
+npx tsx src/index.ts --config targets.json
+```
 
 ## Releasing
 
