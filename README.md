@@ -59,9 +59,14 @@ One commit per sync. Git uses your existing credentials (SSH key or credential h
 ## Install
 
 ```bash
-npm install
-npm run build
+# Run without installing (recommended — always fetches the latest version)
+npx agents-md-sync --config targets.json
+
+# Or install globally
+npm install -g agents-md-sync
 ```
+
+To work on the tool itself, see [From source](#from-source).
 
 ## Usage
 
@@ -131,14 +136,14 @@ agents-md-templates/
 │   └── DO_NOT.md
 └── profiles/
     ├── spring-boot-maven/
-    │   ├── AGENTS.md.tmpl
     │   ├── CODING.md
     │   ├── TESTING.md
     │   └── BUILD.md
     └── angular/
-        ├── AGENTS.md.tmpl
         └── ...
 ```
+
+A profile's identity is its partials (`CODING.md` / `TESTING.md` / `BUILD.md`), not how they are ordered in the rendered output. The tool ships a default `AGENTS.md.tmpl` skeleton that includes `PROJECT`, `CODING`, `TESTING`, `BUILD`, `REVIEW`, and `DO_NOT` in that order — so profiles normally contain only partials. Drop an `AGENTS.md.tmpl` into a profile directory only when you want to override the default ordering or section set for that one profile.
 
 Every target repo must provide its own `.agents/PROJECT.md`. `PROJECT` is the root section of the rendered `AGENTS.md` — it describes what the service does and is inherently per-repo, so there is no central default. Sync fails loudly if it's missing.
 
@@ -185,6 +190,16 @@ Other hosts (GitHub, GitLab, Bitbucket Cloud) are not yet wired up. Adding one m
 - v1: one PR-host adapter implemented (Bitbucket Data Center).
 - v1: markdown partials only.
 - v1: one profile per target (polyglot targets are v2).
+
+## From source
+
+```bash
+git clone https://github.com/trick77/agents-md-sync.git
+cd agents-md-sync
+npm install
+npm run build
+npx tsx src/index.ts --config targets.json
+```
 
 ## Releasing
 
