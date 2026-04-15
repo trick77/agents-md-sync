@@ -1,13 +1,12 @@
 name: Release
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - uses: actions/checkout@v6
@@ -19,9 +18,21 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - name: Verify tag matches package.json version
+      - name: Read version
+        id: ver
+        run: echo "v=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Fail if tag already exists
         run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          PKG=$(node -p "require('./package.json').version")
-          [ "$TAG" = "$PKG" ] || { echo "tag $TAG != package.json $PKG"; exit 1; }
+          if git ls-remote --tags origin "${{ steps.ver.outputs.v }}" | grep -q .; then
+            echo "tag ${{ steps.ver.outputs.v }} already exists — bump package.json"
+            exit 1
+          fi
+      - name: Create tag and GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.ver.outputs.v }}" \
+            --title "${{ steps.ver.outputs.v }}" \
+            --generate-notes \
+            --target "$GITHUB_SHA"
       - run: npm publish --provenance --access public
