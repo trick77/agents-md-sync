@@ -37,8 +37,6 @@ Ownership is explicit:
 
 The local addendum goes on top so repo-specific rules get read first — by humans scanning and by LLMs where earlier tokens carry more weight.
 
-> **Migrating from a previous version?** Rename any `.agents/NAME-CUSTOM.md` to `.agents/NAME.md` and delete any remaining tool-generated mirror files that used to live under `.agents/`. The tool no longer reads the `-CUSTOM.md` suffix and no longer writes mirror copies of central partials.
-
 ## What it does
 
 For each target working copy listed in the config:
