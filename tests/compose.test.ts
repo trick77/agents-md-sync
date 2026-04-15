@@ -53,6 +53,29 @@ describe("compose", () => {
     expect(result.skipped).toEqual(["TESTING"]);
   });
 
+  it("uses a custom partial when the central one is absent", () => {
+    const result = compose({
+      skeleton: "<!-- include: PROJECT.md -->\n",
+      centralPartials: {},
+      customPartials: { PROJECT: "## Project\n\nPer-repo description." },
+      skip: [],
+    });
+    expect(result.agentsMd).toContain("Per-repo description.");
+    expect(result.missing).toEqual([]);
+    expect(result.included).toEqual(["PROJECT"]);
+    expect(result.withCustom).toEqual(["PROJECT"]);
+  });
+
+  it("reports a partial missing when neither central nor custom provides it", () => {
+    const result = compose({
+      skeleton: "<!-- include: PROJECT.md -->\n",
+      centralPartials: {},
+      customPartials: {},
+      skip: [],
+    });
+    expect(result.missing).toEqual(["PROJECT"]);
+  });
+
   it("reports missing partials without throwing", () => {
     const result = compose({
       skeleton: "<!-- include: NOPE.md -->",

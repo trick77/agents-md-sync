@@ -16,7 +16,9 @@ export async function loadTemplate(
   const skeleton = await readFile(skeletonPath, "utf8");
 
   const common = await loadMarkdownDir(resolve(rootDir, "common"));
-  const profilePartials = await loadMarkdownDir(resolve(rootDir, "profiles", profile, "partials"));
+  // Profile partials live alongside AGENTS.md.tmpl; only *.md files are picked up,
+  // so the .tmpl skeleton is naturally excluded. Any stray .md here becomes a partial.
+  const profilePartials = await loadMarkdownDir(resolve(rootDir, "profiles", profile));
   const partials = { ...common, ...profilePartials };
 
   return { skeleton, partials, centralSha };

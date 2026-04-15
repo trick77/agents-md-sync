@@ -4,9 +4,7 @@
 
 ## Project
 
-> TODO: override this by adding `.agents/PROJECT.md` in the target
-> repo with a one-paragraph description of what the service does, its
-> role in the larger system, and any constraints the agent must respect.
+Ingestion service for the telemetry pipeline. Spring Boot application built with Gradle that receives batched events over HTTP, validates them against the schema registry, and publishes to Kafka for downstream processors. Throughput targets are documented in the SLO doc; this service is on the hot path so allocation-heavy changes need benchmarking before merge.
 
 ## Coding
 

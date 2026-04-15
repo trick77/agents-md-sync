@@ -1,4 +1,4 @@
-import { readdir, writeFile } from "node:fs/promises";
+import { readdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildHeader, compose } from "../src/compose.js";
@@ -8,15 +8,34 @@ const HERE = fileURLToPath(new URL(".", import.meta.url));
 const ROOT = resolve(HERE, "..");
 const EXAMPLES = resolve(ROOT, "examples");
 const TEMPLATES = resolve(EXAMPLES, "template-repo");
+const SAMPLE_TARGETS = resolve(EXAMPLES, "sample-targets");
 const TEMPLATE_LABEL = "TOOLING/agents-md-templates";
 const FAKE_SHA = "<sha>";
 
+async function loadSampleTargetPartials(profile: string): Promise<Record<string, string>> {
+  const dir = resolve(SAMPLE_TARGETS, profile);
+  const out: Record<string, string> = {};
+  let files: string[];
+  try {
+    files = await readdir(dir);
+  } catch {
+    return out;
+  }
+  for (const f of files) {
+    if (!f.endsWith(".md")) continue;
+    const name = f.replace(/\.md$/, "");
+    out[name] = await readFile(resolve(dir, f), "utf8");
+  }
+  return out;
+}
+
 export async function renderProfile(profile: string): Promise<string> {
   const template = await loadTemplate(TEMPLATES, profile, FAKE_SHA);
+  const customPartials = await loadSampleTargetPartials(profile);
   const result = compose({
     skeleton: template.skeleton,
     centralPartials: template.partials,
-    customPartials: {},
+    customPartials,
     skip: [],
     header: buildHeader(TEMPLATE_LABEL, FAKE_SHA),
   });

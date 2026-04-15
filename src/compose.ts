@@ -30,16 +30,16 @@ export function compose(input: ComposeInput): ComposeResult {
       return "";
     }
     const central = input.centralPartials[name];
-    if (central === undefined) {
+    const customRaw = input.customPartials[name];
+    const custom = customRaw !== undefined && customRaw.trim().length > 0 ? customRaw : undefined;
+    if (central === undefined && custom === undefined) {
       missing.push(name);
       return `<!-- MISSING PARTIAL: ${name}.md -->`;
     }
     included.push(name);
-    const custom = input.customPartials[name];
-    if (custom !== undefined && custom.trim().length > 0) {
-      withCustom.push(name);
-      return `${custom.trimEnd()}\n\n${central.trimEnd()}`;
-    }
+    if (custom !== undefined) withCustom.push(name);
+    if (central === undefined) return (custom as string).trimEnd();
+    if (custom !== undefined) return `${custom.trimEnd()}\n\n${central.trimEnd()}`;
     return central.trimEnd();
   });
 

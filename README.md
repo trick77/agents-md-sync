@@ -134,21 +134,24 @@ agents-md-templates/
 └── profiles/
     ├── spring-boot-maven/
     │   ├── AGENTS.md.tmpl
-    │   └── partials/
-    │       ├── CODING.md
-    │       ├── TESTING.md
-    │       └── BUILD.md
+    │   ├── CODING.md
+    │   ├── TESTING.md
+    │   └── BUILD.md
     └── angular/
         ├── AGENTS.md.tmpl
-        └── partials/
-            └── ...
+        └── ...
 ```
+
+Every target repo must provide its own `.agents/PROJECT.md`. `PROJECT` is the root section of the rendered `AGENTS.md` — it describes what the service does and is inherently per-repo, so there is no central default. Sync fails loudly if it's missing.
+
+Any `*.md` file in the target's `.agents/` directory becomes an available partial, regardless of whether the central template defines one with the same name. This lets targets both override central partials and add their own (like `PROJECT`).
 
 Resolution for each `<!-- include: NAME.md -->` marker:
 1. If `NAME` is in the target's `skip` → omit.
-2. Else if `profiles/<profile>/partials/NAME.md` exists → use that.
-3. Else if `common/NAME.md` exists → use that.
-4. Else → error.
+2. If the target's `.agents/NAME.md` exists, its content is prepended to the central version (or used alone if there is no central version).
+3. Else if `profiles/<profile>/NAME.md` exists → use that.
+4. Else if `common/NAME.md` exists → use that.
+5. Else → error.
 
 Write partials **for the agent**, not for humans. Every line should shape a decision the agent actually makes while writing or pushing code — constraints on tools, tests, dependencies, commit hygiene. Human-workflow items like "PRs need one approving review" or "keep diffs under 400 lines" belong in `CONTRIBUTING.md` or branch-protection rules; in an `AGENTS.md` they just burn context window. The example partials under `examples/template-repo/` show the intended shape.
 
