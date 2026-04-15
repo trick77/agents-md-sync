@@ -7,7 +7,7 @@ import { loadTemplate } from "../src/templateLoader.js";
 async function makeTemplateRepo(): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "agents-md-tpl-"));
   await mkdir(join(root, "common"), { recursive: true });
-  await mkdir(join(root, "profiles", "angular", "partials"), { recursive: true });
+  await mkdir(join(root, "profiles", "angular"), { recursive: true });
   await writeFile(join(root, "common", "REVIEW.md"), "## Review (common)", "utf8");
   await writeFile(join(root, "common", "DO_NOT.md"), "## Do Not (common)", "utf8");
   await writeFile(
@@ -16,7 +16,7 @@ async function makeTemplateRepo(): Promise<string> {
     "utf8",
   );
   await writeFile(
-    join(root, "profiles", "angular", "partials", "CODING.md"),
+    join(root, "profiles", "angular", "CODING.md"),
     "## Coding (angular)",
     "utf8",
   );
@@ -26,7 +26,7 @@ async function makeTemplateRepo(): Promise<string> {
 describe("loadTemplate", () => {
   it("merges common and profile partials, profile wins on conflict", async () => {
     const root = await makeTemplateRepo();
-    await writeFile(join(root, "profiles", "angular", "partials", "REVIEW.md"), "## Review (angular)", "utf8");
+    await writeFile(join(root, "profiles", "angular", "REVIEW.md"), "## Review (angular)", "utf8");
 
     const t = await loadTemplate(root, "angular", "abc123");
 
@@ -37,7 +37,7 @@ describe("loadTemplate", () => {
     expect(t.partials["REVIEW"]).toBe("## Review (angular)");
   });
 
-  it("returns empty partials when a profile has no partials directory", async () => {
+  it("merges only common partials when the profile dir has no extra markdown", async () => {
     const root = await makeTemplateRepo();
     const t = await loadTemplate(root, "angular", "sha");
     expect(t.partials["CODING"]).toBeDefined();

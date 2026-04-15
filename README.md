@@ -134,19 +134,17 @@ agents-md-templates/
 └── profiles/
     ├── spring-boot-maven/
     │   ├── AGENTS.md.tmpl
-    │   └── partials/
-    │       ├── CODING.md
-    │       ├── TESTING.md
-    │       └── BUILD.md
+    │   ├── CODING.md
+    │   ├── TESTING.md
+    │   └── BUILD.md
     └── angular/
         ├── AGENTS.md.tmpl
-        └── partials/
-            └── ...
+        └── ...
 ```
 
 Resolution for each `<!-- include: NAME.md -->` marker:
 1. If `NAME` is in the target's `skip` → omit.
-2. Else if `profiles/<profile>/partials/NAME.md` exists → use that.
+2. Else if `profiles/<profile>/NAME.md` exists → use that.
 3. Else if `common/NAME.md` exists → use that.
 4. Else → error.
 

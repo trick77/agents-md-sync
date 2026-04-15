@@ -22,7 +22,7 @@ Node/TypeScript CLI that composes an `AGENTS.md` from markdown partials held in 
 - No comments that restate the code. Only comment non-obvious *why*.
 - Use Node's built-in `fetch` unless a specific `undici` feature is needed.
 - Do NOT introduce a heavy templating engine. Include markers are `<!-- include: NAME.md -->` and are resolved by simple string replacement.
-- Partial resolution is profile-aware: `profiles/<profile>/partials/NAME.md` wins over `common/NAME.md`. Keep `compose.ts` pure and test both paths.
+- Partial resolution is profile-aware: `profiles/<profile>/NAME.md` wins over `common/NAME.md`. Keep `compose.ts` pure and test both paths.
 - v1 allows exactly ONE profile per target. Multi-profile (polyglot) support is out of scope. Do not add it without a design discussion.
 
 ## Testing
