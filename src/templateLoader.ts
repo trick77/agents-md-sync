@@ -1,4 +1,4 @@
-import { readFile, readdir } from "node:fs/promises";
+import { readFile, readdir, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
 export interface ResolvedTemplate {
@@ -7,18 +7,50 @@ export interface ResolvedTemplate {
   centralSha: string;
 }
 
+export const DEFAULT_SKELETON = `# Agent Instructions
+
+<!-- include: PROJECT.md -->
+
+<!-- include: CODING.md -->
+
+<!-- include: TESTING.md -->
+
+<!-- include: BUILD.md -->
+
+<!-- include: REVIEW.md -->
+
+<!-- include: DO_NOT.md -->
+`;
+
 export async function loadTemplate(
   rootDir: string,
   profile: string,
   centralSha: string,
 ): Promise<ResolvedTemplate> {
-  const skeletonPath = resolve(rootDir, "profiles", profile, "AGENTS.md.tmpl");
-  const skeleton = await readFile(skeletonPath, "utf8");
+  const profileDir = resolve(rootDir, "profiles", profile);
+  try {
+    const s = await stat(profileDir);
+    if (!s.isDirectory()) throw new Error(`not a directory: ${profileDir}`);
+  } catch {
+    throw new Error(`Unknown profile "${profile}": ${profileDir} does not exist`);
+  }
+
+  const skeletonPath = resolve(profileDir, "AGENTS.md.tmpl");
+  let skeleton: string;
+  try {
+    skeleton = await readFile(skeletonPath, "utf8");
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+      skeleton = DEFAULT_SKELETON;
+    } else {
+      throw err;
+    }
+  }
 
   const common = await loadMarkdownDir(resolve(rootDir, "common"));
   // Profile partials live alongside AGENTS.md.tmpl; only *.md files are picked up,
   // so the .tmpl skeleton is naturally excluded. Any stray .md here becomes a partial.
-  const profilePartials = await loadMarkdownDir(resolve(rootDir, "profiles", profile));
+  const profilePartials = await loadMarkdownDir(profileDir);
   const partials = { ...common, ...profilePartials };
 
   return { skeleton, partials, centralSha };

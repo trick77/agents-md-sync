@@ -44,8 +44,36 @@ describe("loadTemplate", () => {
     expect(Object.keys(t.partials).sort()).toEqual(["CODING", "DO_NOT", "REVIEW"]);
   });
 
-  it("throws when the profile skeleton is missing", async () => {
+  it("throws when the profile directory does not exist", async () => {
     const root = await makeTemplateRepo();
     await expect(loadTemplate(root, "missing-profile", "sha")).rejects.toThrow();
+  });
+
+  it("falls back to the default skeleton when the profile has no AGENTS.md.tmpl", async () => {
+    const root = await mkdtemp(join(tmpdir(), "agents-md-tpl-"));
+    await mkdir(join(root, "common"), { recursive: true });
+    await mkdir(join(root, "profiles", "angular"), { recursive: true });
+    await writeFile(join(root, "profiles", "angular", "CODING.md"), "## Coding", "utf8");
+
+    const t = await loadTemplate(root, "angular", "sha");
+
+    expect(t.skeleton).toContain("# Agent Instructions");
+    expect(t.skeleton).toContain("<!-- include: PROJECT.md -->");
+    expect(t.skeleton).toContain("<!-- include: DO_NOT.md -->");
+  });
+
+  it("uses a profile-provided skeleton over the default", async () => {
+    const root = await mkdtemp(join(tmpdir(), "agents-md-tpl-"));
+    await mkdir(join(root, "profiles", "angular"), { recursive: true });
+    await writeFile(
+      join(root, "profiles", "angular", "AGENTS.md.tmpl"),
+      "# Custom\n<!-- include: CODING.md -->\n",
+      "utf8",
+    );
+    await writeFile(join(root, "profiles", "angular", "CODING.md"), "## Coding", "utf8");
+
+    const t = await loadTemplate(root, "angular", "sha");
+
+    expect(t.skeleton).toBe("# Custom\n<!-- include: CODING.md -->\n");
   });
 });

@@ -136,14 +136,14 @@ agents-md-templates/
 │   └── DO_NOT.md
 └── profiles/
     ├── spring-boot-maven/
-    │   ├── AGENTS.md.tmpl
     │   ├── CODING.md
     │   ├── TESTING.md
     │   └── BUILD.md
     └── angular/
-        ├── AGENTS.md.tmpl
         └── ...
 ```
+
+A profile's identity is its partials (`CODING.md` / `TESTING.md` / `BUILD.md`), not how they are ordered in the rendered output. The tool ships a default `AGENTS.md.tmpl` skeleton that includes `PROJECT`, `CODING`, `TESTING`, `BUILD`, `REVIEW`, and `DO_NOT` in that order — so profiles normally contain only partials. Drop an `AGENTS.md.tmpl` into a profile directory only when you want to override the default ordering or section set for that one profile.
 
 Every target repo must provide its own `.agents/PROJECT.md`. `PROJECT` is the root section of the rendered `AGENTS.md` — it describes what the service does and is inherently per-repo, so there is no central default. Sync fails loudly if it's missing.
 
