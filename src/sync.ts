@@ -110,6 +110,14 @@ async function syncTarget(
     }
   }
 
+  const AGENTS_MD_WARN_BYTES = 12_288; // 12 KB
+  if (result.agentsMd.length > AGENTS_MD_WARN_BYTES) {
+    const kb = (result.agentsMd.length / 1024).toFixed(1);
+    logger.warn(
+      `  composed AGENTS.md is ${kb} KB (threshold: ${AGENTS_MD_WARN_BYTES / 1024} KB) — beyond ~150-200 instructions, LLM instruction-following degrades noticeably`,
+    );
+  }
+
   const plannedWrites = buildPlannedWrites(result.agentsMd);
 
   if (!opts.apply) {
