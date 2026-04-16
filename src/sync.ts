@@ -22,6 +22,7 @@ import {
 } from "./git.js";
 import { logger } from "./logger.js";
 import { loadTemplate } from "./templateLoader.js";
+import { scaffoldMissingPartials } from "./scaffold.js";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
@@ -86,7 +87,7 @@ async function syncTarget(
   const customPartials = await readCustomPartials(targetDir);
 
   const header = buildHeader(ctx.templateLabel, ctx.templateSha);
-  const result = compose({
+  let result = compose({
     skeleton: template.skeleton,
     centralPartials: template.partials,
     customPartials,
@@ -95,7 +96,18 @@ async function syncTarget(
   });
 
   if (result.missing.length > 0) {
-    throw new Error(`Skeleton references missing partials: ${result.missing.join(", ")}`);
+    await scaffoldMissingPartials(targetDir, result.missing);
+    const refreshedPartials = await readCustomPartials(targetDir);
+    result = compose({
+      skeleton: template.skeleton,
+      centralPartials: template.partials,
+      customPartials: refreshedPartials,
+      skip: target.skip,
+      header,
+    });
+    if (result.missing.length > 0) {
+      throw new Error(`Skeleton references missing partials after scaffold: ${result.missing.join(", ")}`);
+    }
   }
 
   const plannedWrites = buildPlannedWrites(result.agentsMd);
