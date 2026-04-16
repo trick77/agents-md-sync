@@ -95,18 +95,28 @@ async function syncTarget(
     header,
   });
 
+  const SCAFFOLD_PARTIALS = new Set(["PROJECT"]);
+
   if (result.missing.length > 0) {
-    await scaffoldMissingPartials(targetDir, result.missing);
-    const refreshedPartials = await readCustomPartials(targetDir);
-    result = compose({
-      skeleton: template.skeleton,
-      centralPartials: template.partials,
-      customPartials: refreshedPartials,
-      skip: target.skip,
-      header,
-    });
-    if (result.missing.length > 0) {
-      throw new Error(`Skeleton references missing partials after scaffold: ${result.missing.join(", ")}`);
+    const toScaffold = result.missing.filter((n) => SCAFFOLD_PARTIALS.has(n));
+    const unresolved = result.missing.filter((n) => !SCAFFOLD_PARTIALS.has(n));
+
+    if (unresolved.length > 0) {
+      throw new Error(
+        `Skeleton references partials not found in central templates or .agents/: ${unresolved.join(", ")}`,
+      );
+    }
+
+    if (toScaffold.length > 0) {
+      await scaffoldMissingPartials(targetDir, toScaffold);
+      const refreshedPartials = await readCustomPartials(targetDir);
+      result = compose({
+        skeleton: template.skeleton,
+        centralPartials: template.partials,
+        customPartials: refreshedPartials,
+        skip: target.skip,
+        header,
+      });
     }
   }
 
