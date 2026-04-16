@@ -1,6 +1,6 @@
 {
   "name": "agents-md-sync",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Sync AGENTS.md across many repositories from a central markdown template repo, via pull requests.",
   "license": "MIT",
   "repository": {
