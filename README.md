@@ -1,7 +1,6 @@
 # agents-md-sync
 
 [![CI](https://img.shields.io/github/actions/workflow/status/trick77/agents-md-sync/ci.yaml?branch=master&label=CI)](https://github.com/trick77/agents-md-sync/actions/workflows/ci.yaml)
-[![npm](https://img.shields.io/npm/v/agents-md-sync)](https://www.npmjs.com/package/agents-md-sync)
 [![node](https://img.shields.io/node/v/agents-md-sync)](https://www.npmjs.com/package/agents-md-sync)
 
 **The problem.** Once you have more than a handful of repositories, keeping `AGENTS.md` consistent across all of them is painful. Copy-pasted instructions drift, and per-repo tweaks get lost when someone refreshes the shared boilerplate. Teams either stop updating the file or stop trusting it — either way, the AI agents working in those repos get stale or contradictory guidance.

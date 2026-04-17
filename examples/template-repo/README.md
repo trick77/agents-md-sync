@@ -2,6 +2,21 @@
 
 Central template repo consumed by [`agents-md-sync`](https://www.npmjs.com/package/agents-md-sync) to keep `AGENTS.md` in sync across many target repositories.
 
+## What this does
+
+For each target repo, `agents-md-sync` generates an `AGENTS.md` by combining two sources:
+
+1. **Central partials from this template directory** (`common/` + `profiles/<profile>/`) — the shared, per-stack instructions maintained in one place.
+2. **Per-target addenda from the target repo's `.agents/` directory** (optional) — repo-specific rules the target's maintainers want layered on top.
+
+For every `<!-- include: NAME.md -->` marker in the skeleton, the tool looks for:
+- a matching `.agents/NAME.md` in the target repo (local addendum), and
+- a matching `NAME.md` in this template directory (central baseline).
+
+If both exist, the local addendum is **prepended** to the central version — so repo-specific rules appear first (humans scanning top-down see them first, LLMs give earlier tokens more weight). If only one exists, that one is used alone. The generated `AGENTS.md` is tool-owned and overwritten on every sync; the `.agents/` files are repo-owned and never touched by the tool.
+
+Net effect: you edit shared instructions once in this template repo, and each target's `AGENTS.md` reflects both the central baseline *and* whatever local addenda that target has added.
+
 ## Layout
 
 ```

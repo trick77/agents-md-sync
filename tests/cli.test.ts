@@ -33,4 +33,20 @@ describe("CLI", () => {
     expect(status).toBe(0);
     expect(stdout).toContain("Examples:");
   }, 30_000);
+
+  it("warns that apply-only flags are ignored when --apply is not set", () => {
+    const { stderr } = runCli([
+      "--config",
+      "/dev/null/nope",
+      "--autostash",
+      "--allow-dirty",
+      "--pr",
+      "--force",
+    ]);
+    expect(stderr).toContain("--pr");
+    expect(stderr).toContain("--autostash");
+    expect(stderr).toContain("--allow-dirty");
+    expect(stderr).toContain("--force");
+    expect(stderr).toContain("no effect without --apply");
+  }, 30_000);
 });
