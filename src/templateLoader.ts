@@ -6,9 +6,7 @@ export interface ResolvedTemplate {
   partials: Record<string, string>;
 }
 
-export const DEFAULT_SKELETON = `# Agent Instructions
-
-<!-- include: PROJECT.md -->
+export const DEFAULT_SKELETON = `<!-- include: PROJECT.md -->
 
 <!-- include: CODING.md -->
 
