@@ -30,6 +30,7 @@ export interface SyncOptions {
   apply: boolean;
   pr: boolean;
   force: boolean;
+  showOutput: boolean;
   allowDirty: boolean;
   autostash: boolean;
 }
@@ -51,6 +52,13 @@ export async function syncAll(
     } catch (err) {
       logger.error(`sync failed for ${target.dir}:`, err);
     }
+  }
+
+  if (!opts.apply) {
+    logger.info("");
+    logger.info("Preview only — no files changed, no commits, no push.");
+    logger.info("Run with --apply to sync, or --show-output to see the full composed AGENTS.md.");
+    logger.info("See --help for all options.");
   }
 }
 
@@ -126,8 +134,10 @@ async function syncTarget(
   const plannedWrites = buildPlannedWrites(result.agentsMd);
 
   if (!opts.apply) {
-    logger.info(`  [preview] ${Object.keys(plannedWrites).length} file(s) would be considered for write`);
-    logger.info(`  --- composed AGENTS.md ---\n${result.agentsMd}`);
+    logger.info(`  [preview] ${summarizePreview(result.agentsMd, result)}`);
+    if (opts.showOutput) {
+      logger.info(`  --- composed AGENTS.md ---\n${result.agentsMd}`);
+    }
     return;
   }
 
@@ -232,4 +242,17 @@ async function readCustomPartials(targetDir: string): Promise<Record<string, str
 
 function buildPlannedWrites(agentsMd: string): Record<string, string> {
   return { "AGENTS.md": agentsMd };
+}
+
+export function summarizePreview(
+  agentsMd: string,
+  result: { included: string[]; skipped: string[]; withCustom: string[] },
+): string {
+  const kb = (agentsMd.length / 1024).toFixed(1);
+  const parts = [`would write AGENTS.md (${kb} KB)`];
+  if (result.included.length > 0) parts.push(`included: ${result.included.join(", ")}`);
+  else parts.push("included: none");
+  if (result.skipped.length > 0) parts.push(`skipped: ${result.skipped.join(", ")}`);
+  if (result.withCustom.length > 0) parts.push(`addenda: ${result.withCustom.join(", ")}`);
+  return parts.join(" — ");
 }

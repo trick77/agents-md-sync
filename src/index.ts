@@ -5,29 +5,69 @@ import { loadConfig } from "./config.js";
 import { logger, setLevel } from "./logger.js";
 import { syncAll } from "./sync.js";
 
+function printUsage(program: Command): void {
+  process.stdout.write(program.helpInformation());
+  process.stdout.write(
+    [
+      "",
+      "Examples:",
+      "  # Preview (default) — prints a per-target summary; no writes.",
+      "  agents-md-sync --config targets.json",
+      "",
+      "  # Preview and also dump the full composed AGENTS.md for each target.",
+      "  agents-md-sync --config targets.json --show-output",
+      "",
+      "  # Commit and force-push feature/update-agents-md. No PR is opened.",
+      "  agents-md-sync --config targets.json --apply",
+      "",
+      "  # Commit, push, and create/update the PR (requires BITBUCKET_TOKEN).",
+      "  agents-md-sync --config targets.json --apply --pr",
+      "",
+      "  # Open a PR even when nothing changed.",
+      "  agents-md-sync --config targets.json --apply --pr --force",
+      "",
+      "  # Auto-stash local changes before sync and restore them after.",
+      "  agents-md-sync --config targets.json --apply --autostash",
+      "",
+      "Getting started:",
+      "  Create a targets.json listing your local template directory and target",
+      "  working copies. See https://github.com/trick77/agents-md-sync#config-targetsjson",
+      "  for the full schema.",
+      "",
+    ].join("\n"),
+  );
+}
+
 async function main(): Promise<void> {
   const program = new Command();
   program
     .name("agents-md-sync")
     .description("Generate and sync AGENTS.md across locally-cloned Bitbucket repos.")
-    .requiredOption("-c, --config <path>", "path to targets.json")
+    .option("-c, --config <path>", "path to targets.json")
     .option("--apply", "actually commit and push. Default is preview only.", false)
     .option("--pr", "open or update a pull request after pushing (requires --apply)", false)
     .option("--force", "open a PR even when nothing changed (requires --apply --pr)", false)
+    .option("--show-output", "in preview mode, also print the full composed AGENTS.md for each target", false)
     .option("--allow-dirty", "skip the clean-working-tree check on target repos (destructive: uncommitted changes are discarded by the default-branch reset)", false)
     .option("--autostash", "stash local changes before sync and pop them after (safe alternative to --allow-dirty)", false)
     .option("-v, --verbose", "enable debug logging", false);
 
   program.parse(process.argv);
   const opts = program.opts<{
-    config: string;
+    config?: string;
     apply: boolean;
     pr: boolean;
     force: boolean;
+    showOutput: boolean;
     allowDirty: boolean;
     autostash: boolean;
     verbose: boolean;
   }>();
+
+  if (!opts.config) {
+    printUsage(program);
+    return;
+  }
 
   if (opts.verbose) setLevel("debug");
 
@@ -50,6 +90,7 @@ async function main(): Promise<void> {
     apply: opts.apply,
     pr: opts.pr,
     force: opts.force,
+    showOutput: opts.showOutput,
     allowDirty: opts.allowDirty,
     autostash: opts.autostash,
   });

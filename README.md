@@ -71,11 +71,20 @@ To work on the tool itself, see [From source](#from-source).
 
 ## Usage
 
-**By default the tool never writes anything.** It composes and prints previews. Pass `--apply` to commit and push. PR creation is **opt-in**: add `--pr` to also open or update a pull request.
+**By default the tool never writes anything.** The default run is a preview that prints a concise per-target summary (what would be written, which partials were included/skipped/addenda'd) and no file content. Pass `--apply` to commit and push; `--pr` to also open or update a pull request.
+
+Run with no arguments to see usage and examples:
 
 ```bash
-# Preview (default) — compose and print, no git writes, no push, no PR
+npx agents-md-sync
+```
+
+```bash
+# Preview (default) — per-target summary; no writes.
 npx agents-md-sync --config targets.json
+
+# Preview and also dump the full composed AGENTS.md for each target.
+npx agents-md-sync --config targets.json --show-output
 
 # Commit and force-push feature/update-agents-md — no PR is opened
 npx agents-md-sync --config targets.json --apply
