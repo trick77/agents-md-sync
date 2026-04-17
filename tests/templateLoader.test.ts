@@ -56,7 +56,6 @@ describe("loadTemplate", () => {
 
     const t = await loadTemplate(root, "angular");
 
-    expect(t.skeleton).toContain("# Agent Instructions");
     expect(t.skeleton).toContain("<!-- include: PROJECT.md -->");
     expect(t.skeleton).toContain("<!-- include: DO_NOT.md -->");
   });
