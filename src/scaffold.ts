@@ -1,9 +1,9 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { basename, resolve } from "node:path";
 import { logger } from "./logger.js";
 
 const SCAFFOLD_CONTENT: Record<string, string> = {
-  PROJECT: `## Project
+  PROJECT: `## Project {{projectName}}
 
 <!-- Describe your project here: what it does, its domain, who uses it, key
      performance constraints, and anything else an AI agent should know before
@@ -47,11 +47,11 @@ const SCAFFOLD_CONTENT: Record<string, string> = {
 `,
 };
 
-function scaffoldContent(name: string): string {
-  return (
+function scaffoldContent(name: string, projectName: string): string {
+  const template =
     SCAFFOLD_CONTENT[name] ??
-    `## ${name}\n\n<!-- Add content for ${name} here. -->\n`
-  );
+    `## ${name}\n\n<!-- Add content for ${name} here. -->\n`;
+  return template.replace(/\{\{projectName\}\}/g, projectName);
 }
 
 export async function scaffoldMissingPartials(
@@ -60,9 +60,10 @@ export async function scaffoldMissingPartials(
 ): Promise<void> {
   const agentsDir = resolve(targetDir, ".agents");
   await mkdir(agentsDir, { recursive: true });
+  const projectName = basename(resolve(targetDir));
   for (const name of missing) {
     const filePath = resolve(agentsDir, `${name}.md`);
-    await writeFile(filePath, scaffoldContent(name), "utf8");
+    await writeFile(filePath, scaffoldContent(name, projectName), "utf8");
     logger.info(`  scaffolded .agents/${name}.md`);
   }
 }
