@@ -163,10 +163,6 @@ async function syncTarget(
     logger.warn("    --force has no effect without --pr (PR step is skipped)");
   }
 
-  if (!opts.pr) {
-    logger.info(`    ${pc.dim("PR step skipped (pass --pr to open a pull request)")}`);
-  }
-
   let originalRef: string | null = null;
   let stashed = false;
   if (opts.autostash) {
@@ -193,6 +189,10 @@ async function syncTarget(
     await commitSyncChanges(targetGit, Object.keys(plannedWrites), commitMessage);
     await pushBranch(targetGit, prBranch);
     logger.info(`    ${pc.green("✓")} pushed ${pc.bold(prBranch)}`);
+
+    if (!opts.pr) {
+      logger.info(`    ${pc.dim("PR step skipped (pass --pr to open a pull request)")}`);
+    }
 
     if (opts.pr && client) {
       const prClient = client;

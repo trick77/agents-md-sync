@@ -29,10 +29,11 @@ describe("scaffoldMissingPartials", () => {
     expect(s.isDirectory()).toBe(true);
   });
 
-  it("writes PROJECT.md with a placeholder heading and comment", async () => {
+  it("writes PROJECT.md with the target directory name as title", async () => {
     await scaffoldMissingPartials(tmpDir, ["PROJECT"]);
     const content = await readFile(join(tmpDir, ".agents", "PROJECT.md"), "utf8");
-    expect(content).toMatch(/^## Project/);
+    const dirName = tmpDir.split("/").pop()!;
+    expect(content).toMatch(new RegExp(`^## Project ${dirName}`));
     expect(content).toContain("<!--");
   });
 
