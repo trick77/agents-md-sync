@@ -35,6 +35,9 @@ describe("logger", () => {
   it("prefixes each line with the level tag", () => {
     setLevel("info");
     logger.info("hello");
-    expect(logSpy).toHaveBeenCalledWith("[info]", "hello");
+    const [prefix, msg] = logSpy.mock.calls[0] as [string, string];
+    // eslint-disable-next-line no-control-regex
+    expect(prefix.replace(/\x1b\[[0-9;]*m/g, "")).toBe("[info]");
+    expect(msg).toBe("hello");
   });
 });
