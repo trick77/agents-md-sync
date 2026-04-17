@@ -1,9 +1,15 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
 import { Command } from "commander";
 import { BitbucketClient } from "./bitbucket.js";
 import { loadConfig } from "./config.js";
 import { logger, setLevel } from "./logger.js";
 import { syncAll } from "./sync.js";
+
+const pkg = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+) as { version: string };
+const VERSION = pkg.version;
 
 function printUsage(program: Command): void {
   process.stdout.write(program.helpInformation());
@@ -39,10 +45,13 @@ function printUsage(program: Command): void {
 }
 
 async function main(): Promise<void> {
+  logger.info(`agents-md-sync ${VERSION}`);
+
   const program = new Command();
   program
     .name("agents-md-sync")
     .description("Generate and sync AGENTS.md across locally-cloned Bitbucket repos.")
+    .version(VERSION)
     .option("-c, --config <path>", "path to targets.json")
     .option("--apply", "actually commit and push. Default is preview only.", false)
     .option("--pr", "open or update a pull request after pushing (requires --apply)", false)
