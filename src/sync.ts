@@ -99,6 +99,7 @@ async function syncTarget(
   });
 
   const SCAFFOLD_PARTIALS = new Set(["PROJECT"]);
+  let scaffoldCandidates: string[] = [];
 
   if (result.missing.length > 0) {
     const toScaffold = result.missing.filter((n) => SCAFFOLD_PARTIALS.has(n));
@@ -111,15 +112,19 @@ async function syncTarget(
     }
 
     if (toScaffold.length > 0) {
-      await scaffoldMissingPartials(targetDir, toScaffold);
-      const refreshedPartials = await readCustomPartials(targetDir);
-      result = compose({
-        skeleton: template.skeleton,
-        centralPartials: template.partials,
-        customPartials: refreshedPartials,
-        skip: target.skip,
-        header,
-      });
+      if (opts.apply) {
+        await scaffoldMissingPartials(targetDir, toScaffold);
+        const refreshedPartials = await readCustomPartials(targetDir);
+        result = compose({
+          skeleton: template.skeleton,
+          centralPartials: template.partials,
+          customPartials: refreshedPartials,
+          skip: target.skip,
+          header,
+        });
+      } else {
+        scaffoldCandidates = toScaffold;
+      }
     }
   }
 
@@ -134,7 +139,9 @@ async function syncTarget(
   const plannedWrites = buildPlannedWrites(result.agentsMd);
 
   if (!opts.apply) {
-    logger.info(`  [preview] ${summarizePreview(result.agentsMd, result)}`);
+    for (const line of renderPreviewLines(result, ctx.templateLabel, target.profile, scaffoldCandidates)) {
+      logger.info(line);
+    }
     if (opts.showOutput) {
       logger.info(`  --- composed AGENTS.md ---\n${result.agentsMd}`);
     }
@@ -244,15 +251,69 @@ function buildPlannedWrites(agentsMd: string): Record<string, string> {
   return { "AGENTS.md": agentsMd };
 }
 
-export function summarizePreview(
-  agentsMd: string,
-  result: { included: string[]; skipped: string[]; withCustom: string[] },
-): string {
-  const kb = (agentsMd.length / 1024).toFixed(1);
-  const parts = [`would write AGENTS.md (${kb} KB)`];
-  if (result.included.length > 0) parts.push(`included: ${result.included.join(", ")}`);
-  else parts.push("included: none");
-  if (result.skipped.length > 0) parts.push(`skipped: ${result.skipped.join(", ")}`);
-  if (result.withCustom.length > 0) parts.push(`addenda: ${result.withCustom.join(", ")}`);
-  return parts.join(" — ");
+export function renderPreviewLines(
+  result: {
+    agentsMd: string;
+    order: Array<{
+      name: string;
+      status: "included" | "skipped" | "missing";
+      source?: "central" | "custom" | "both";
+      centralBytes?: number;
+      customBytes?: number;
+    }>;
+    included: string[];
+    skipped: string[];
+    withCustom: string[];
+  },
+  templateLabel: string,
+  profile: string,
+  scaffoldCandidates: string[] = [],
+): string[] {
+  const lines: string[] = [];
+  const scaffoldSet = new Set(scaffoldCandidates);
+  lines.push(`  template: ${templateLabel} (profile: ${profile})`);
+  lines.push(`  partials (${result.order.length} total):`);
+
+  const nameWidth = Math.max(0, ...result.order.map((e) => e.name.length));
+
+  for (const entry of result.order) {
+    const padded = entry.name.padEnd(nameWidth);
+    if (entry.status === "skipped") {
+      lines.push(`    ✗ ${padded}  skipped (listed in target.skip)`);
+      continue;
+    }
+    if (entry.status === "missing") {
+      if (scaffoldSet.has(entry.name)) {
+        lines.push(`    + ${padded}  will be scaffolded at .agents/${entry.name}.md on --apply`);
+      } else {
+        lines.push(`    ! ${padded}  MISSING — no central and no .agents/ override`);
+      }
+      continue;
+    }
+    const central = entry.centralBytes ?? 0;
+    const custom = entry.customBytes ?? 0;
+    const detail =
+      entry.source === "both"
+        ? `central (${fmtBytes(central)}) + local addendum (${fmtBytes(custom)}; .agents/${entry.name}.md prepended)`
+        : entry.source === "custom"
+          ? `local only (${fmtBytes(custom)}; .agents/${entry.name}.md — no central partial)`
+          : `central only (${fmtBytes(central)})`;
+    lines.push(`    ✓ ${padded}  ${detail}`);
+  }
+
+  const kb = (result.agentsMd.length / 1024).toFixed(1);
+  const parts = [
+    `included ${result.included.length}`,
+    `skipped ${result.skipped.length}`,
+    `addenda on ${result.withCustom.length}`,
+  ];
+  if (scaffoldCandidates.length > 0) parts.push(`to scaffold ${scaffoldCandidates.length}`);
+  lines.push(`  composed AGENTS.md: ${kb} KB (${parts.join(", ")})`);
+  lines.push(`  [preview] would write AGENTS.md (pass --apply to actually write)`);
+  return lines;
+}
+
+function fmtBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  return `${(n / 1024).toFixed(1)} KB`;
 }

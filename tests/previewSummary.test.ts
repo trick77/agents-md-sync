@@ -1,32 +1,75 @@
 import { describe, expect, it } from "vitest";
-import { summarizePreview } from "../src/sync.js";
+import { compose } from "../src/compose.js";
+import { renderPreviewLines } from "../src/sync.js";
 
-describe("summarizePreview", () => {
-  it("reports size and included partials", () => {
-    const body = "x".repeat(1024 * 2); // 2.0 KB
-    const out = summarizePreview(body, {
-      included: ["CODING", "TESTING"],
-      skipped: [],
-      withCustom: [],
+describe("renderPreviewLines", () => {
+  it("shows template, profile, per-partial source lines and a composed-size summary", () => {
+    const result = compose({
+      skeleton:
+        "<!-- include: PROJECT.md -->\n<!-- include: CODING.md -->\n<!-- include: TESTING.md -->\n<!-- include: REVIEW.md -->\n",
+      centralPartials: {
+        CODING: "## Coding\n- rule",
+        TESTING: "## Testing\n- rule",
+        REVIEW: "## Review\n- rule",
+      },
+      customPartials: {
+        PROJECT: "## Project\n- local only",
+        CODING: "- repo-specific",
+      },
+      skip: ["REVIEW"],
     });
-    expect(out).toContain("would write AGENTS.md (2.0 KB)");
-    expect(out).toContain("included: CODING, TESTING");
-    expect(out).not.toContain("skipped:");
-    expect(out).not.toContain("addenda:");
+
+    const lines = renderPreviewLines(result, "TOOLING/agents-md-templates", "angular");
+    const joined = lines.join("\n");
+
+    expect(joined).toContain("template: TOOLING/agents-md-templates (profile: angular)");
+    expect(joined).toContain("partials (4 total)");
+    expect(joined).toMatch(/✓ PROJECT\s+local only/);
+    expect(joined).toContain(".agents/PROJECT.md");
+    expect(joined).toMatch(/✓ CODING\s+central.*local addendum/);
+    expect(joined).toContain(".agents/CODING.md prepended");
+    expect(joined).toMatch(/✓ TESTING\s+central only/);
+    expect(joined).toMatch(/✗ REVIEW\s+skipped \(listed in target\.skip\)/);
+    expect(joined).toContain("composed AGENTS.md:");
+    expect(joined).toContain("included 3");
+    expect(joined).toContain("skipped 1");
+    expect(joined).toContain("addenda on 2");
+    expect(joined).toContain("[preview]");
   });
 
-  it("includes skipped and addenda sections when present", () => {
-    const out = summarizePreview("body", {
-      included: ["CODING"],
-      skipped: ["REVIEW"],
-      withCustom: ["CODING"],
+  it("does not include the composed content in any line", () => {
+    const result = compose({
+      skeleton: "<!-- include: CODING.md -->\n",
+      centralPartials: { CODING: "## Coding\n- THE_SECRET_MARKER" },
+      customPartials: {},
+      skip: [],
     });
-    expect(out).toContain("skipped: REVIEW");
-    expect(out).toContain("addenda: CODING");
+    const joined = renderPreviewLines(result, "tpl", "p").join("\n");
+    expect(joined).not.toContain("THE_SECRET_MARKER");
+    expect(joined).not.toContain("## Coding");
   });
 
-  it("says 'included: none' when the result has no included partials", () => {
-    const out = summarizePreview("body", { included: [], skipped: [], withCustom: [] });
-    expect(out).toContain("included: none");
+  it("reports missing partials explicitly", () => {
+    const result = compose({
+      skeleton: "<!-- include: NOPE.md -->\n",
+      centralPartials: {},
+      customPartials: {},
+      skip: [],
+    });
+    const joined = renderPreviewLines(result, "tpl", "p").join("\n");
+    expect(joined).toMatch(/! NOPE\s+MISSING/);
+  });
+
+  it("labels scaffold candidates as 'will be scaffolded on --apply', not MISSING", () => {
+    const result = compose({
+      skeleton: "<!-- include: PROJECT.md -->\n",
+      centralPartials: {},
+      customPartials: {},
+      skip: [],
+    });
+    const joined = renderPreviewLines(result, "tpl", "p", ["PROJECT"]).join("\n");
+    expect(joined).toMatch(/\+ PROJECT\s+will be scaffolded at \.agents\/PROJECT\.md on --apply/);
+    expect(joined).not.toContain("MISSING");
+    expect(joined).toContain("to scaffold 1");
   });
 });

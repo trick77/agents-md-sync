@@ -6,12 +6,25 @@ export interface ComposeInput {
   header?: string;
 }
 
+export type PartialSource = "central" | "custom" | "both";
+export type PartialStatus = "included" | "skipped" | "missing";
+
+export interface PartialEntry {
+  name: string;
+  status: PartialStatus;
+  source?: PartialSource;
+  centralBytes?: number;
+  customBytes?: number;
+}
+
 export interface ComposeResult {
   agentsMd: string;
   included: string[];
   skipped: string[];
   withCustom: string[];
   missing: string[];
+  sources: Record<string, PartialSource>;
+  order: PartialEntry[];
 }
 
 const INCLUDE_RE = /<!--\s*include:\s*([A-Za-z0-9_-]+)\.md\s*-->/g;
@@ -22,11 +35,14 @@ export function compose(input: ComposeInput): ComposeResult {
   const skipped: string[] = [];
   const withCustom: string[] = [];
   const missing: string[] = [];
+  const sources: Record<string, PartialSource> = {};
+  const order: PartialEntry[] = [];
 
   const body = input.skeleton.replace(INCLUDE_RE, (_match, rawName: string) => {
     const name = rawName;
     if (skipSet.has(name)) {
       skipped.push(name);
+      order.push({ name, status: "skipped" });
       return "";
     }
     const central = input.centralPartials[name];
@@ -34,10 +50,21 @@ export function compose(input: ComposeInput): ComposeResult {
     const custom = customRaw !== undefined && customRaw.trim().length > 0 ? customRaw : undefined;
     if (central === undefined && custom === undefined) {
       missing.push(name);
+      order.push({ name, status: "missing" });
       return `<!-- MISSING PARTIAL: ${name}.md -->`;
     }
     included.push(name);
     if (custom !== undefined) withCustom.push(name);
+    const source: PartialSource =
+      central !== undefined && custom !== undefined ? "both" : custom !== undefined ? "custom" : "central";
+    sources[name] = source;
+    order.push({
+      name,
+      status: "included",
+      source,
+      centralBytes: central !== undefined ? byteLen(central) : undefined,
+      customBytes: custom !== undefined ? byteLen(custom) : undefined,
+    });
     if (central === undefined) return (custom as string).trimEnd();
     if (custom !== undefined) return `${custom.trimEnd()}\n\n${central.trimEnd()}`;
     return central.trimEnd();
@@ -47,7 +74,11 @@ export function compose(input: ComposeInput): ComposeResult {
   const header = input.header ? input.header.trimEnd() + "\n\n" : "";
   const agentsMd = header + cleaned.trimEnd() + "\n";
 
-  return { agentsMd, included, skipped, withCustom, missing };
+  return { agentsMd, included, skipped, withCustom, missing, sources, order };
+}
+
+function byteLen(s: string): number {
+  return Buffer.byteLength(s, "utf8");
 }
 
 function collapseBlankRuns(text: string): string {

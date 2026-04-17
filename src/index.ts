@@ -71,8 +71,17 @@ async function main(): Promise<void> {
 
   if (opts.verbose) setLevel("debug");
 
-  if (opts.pr && !opts.apply) {
-    logger.warn("--pr has no effect without --apply; running in preview mode.");
+  if (!opts.apply) {
+    const ignored: string[] = [];
+    if (opts.pr) ignored.push("--pr");
+    if (opts.force) ignored.push("--force");
+    if (opts.autostash) ignored.push("--autostash");
+    if (opts.allowDirty) ignored.push("--allow-dirty");
+    if (ignored.length > 0) {
+      logger.warn(
+        `${ignored.join(", ")} ${ignored.length === 1 ? "has" : "have"} no effect without --apply; running in preview mode.`,
+      );
+    }
   }
 
   const token = process.env.BITBUCKET_TOKEN;
