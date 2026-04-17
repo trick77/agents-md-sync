@@ -4,7 +4,6 @@ import { resolve } from "node:path";
 export interface ResolvedTemplate {
   skeleton: string;
   partials: Record<string, string>;
-  centralSha: string;
 }
 
 export const DEFAULT_SKELETON = `# Agent Instructions
@@ -25,7 +24,6 @@ export const DEFAULT_SKELETON = `# Agent Instructions
 export async function loadTemplate(
   rootDir: string,
   profile: string,
-  centralSha: string,
 ): Promise<ResolvedTemplate> {
   const profileDir = resolve(rootDir, "profiles", profile);
   try {
@@ -53,7 +51,7 @@ export async function loadTemplate(
   const profilePartials = await loadMarkdownDir(profileDir);
   const partials = { ...common, ...profilePartials };
 
-  return { skeleton, partials, centralSha };
+  return { skeleton, partials };
 }
 
 async function loadMarkdownDir(dir: string): Promise<Record<string, string>> {

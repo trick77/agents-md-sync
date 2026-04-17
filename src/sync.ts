@@ -6,6 +6,7 @@ import type { Config, Target } from "./config.js";
 import { buildCommitMessage, buildPrDescription } from "./drift.js";
 import {
   assertCleanWorkingTree,
+  assertIsGitRepo,
   commitSyncChanges,
   detectDefaultBranch,
   getHeadRef,
@@ -13,12 +14,9 @@ import {
   hasStagedChanges,
   prepareTargetRepo,
   pushBranch,
-  readLastSyncSha,
   remoteToProjectRepo,
   stashPop,
   stashPush,
-  templateCommitsSince,
-  templateHeadSha,
 } from "./git.js";
 import { logger } from "./logger.js";
 import { loadTemplate } from "./templateLoader.js";
@@ -42,15 +40,12 @@ export async function syncAll(
   opts: SyncOptions,
 ): Promise<void> {
   const templateDirAbs = resolve(config.localGitBaseDir, config.templateDir);
-  const templateGit = gitIn(templateDirAbs);
-  const templateSha = await templateHeadSha(templateGit);
   const templateLabel = config.templateDir;
 
   for (const target of config.targets) {
     try {
       await syncTarget(config, target, client, opts, {
         templateDirAbs,
-        templateSha,
         templateLabel,
       });
     } catch (err) {
@@ -61,7 +56,6 @@ export async function syncAll(
 
 interface TemplateCtx {
   templateDirAbs: string;
-  templateSha: string;
   templateLabel: string;
 }
 
@@ -76,6 +70,7 @@ async function syncTarget(
   logger.info(`▶ ${target.dir} (profile: ${target.profile})`);
 
   const targetGit = gitIn(targetDir);
+  await assertIsGitRepo(targetGit, targetDir);
   if (!opts.allowDirty && !opts.autostash) {
     await assertCleanWorkingTree(targetGit);
   }
@@ -83,10 +78,10 @@ async function syncTarget(
   const defaultBranch = await detectDefaultBranch(targetGit);
   const prBranch = config.prBranch;
 
-  const template = await loadTemplate(ctx.templateDirAbs, target.profile, ctx.templateSha);
+  const template = await loadTemplate(ctx.templateDirAbs, target.profile);
   const customPartials = await readCustomPartials(targetDir);
 
-  const header = buildHeader(ctx.templateLabel, ctx.templateSha);
+  const header = buildHeader(ctx.templateLabel);
   let result = compose({
     skeleton: template.skeleton,
     centralPartials: template.partials,
@@ -170,15 +165,7 @@ async function syncTarget(
       return;
     }
 
-    const lastSync = await readLastSyncSha(targetGit, defaultBranch);
-    const lastSyncSha = lastSync?.sha ?? null;
-
-    const templateGit = gitIn(ctx.templateDirAbs);
-    const upstreamCommits = lastSyncSha
-      ? await templateCommitsSince(templateGit, lastSyncSha, target.profile)
-      : [];
-
-    const commitMessage = buildCommitMessage(ctx.templateLabel, ctx.templateSha);
+    const commitMessage = buildCommitMessage(ctx.templateLabel);
     await commitSyncChanges(targetGit, Object.keys(plannedWrites), commitMessage);
     await pushBranch(targetGit, prBranch);
     logger.info(`  pushed ${prBranch}`);
@@ -190,9 +177,6 @@ async function syncTarget(
 
       const description = buildPrDescription({
         templateRepoLabel: ctx.templateLabel,
-        centralSha: ctx.templateSha,
-        lastSyncSha,
-        upstreamCommitsSinceLastSync: upstreamCommits,
         included: result.included,
         skipped: result.skipped,
         withCustom: result.withCustom,

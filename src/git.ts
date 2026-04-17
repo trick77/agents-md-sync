@@ -1,5 +1,4 @@
 import { simpleGit, type SimpleGit } from "simple-git";
-import type { CommitInfo } from "./drift.js";
 
 export interface RepoRef {
   projectKey: string;
@@ -8,6 +7,16 @@ export interface RepoRef {
 
 export function gitIn(dir: string): SimpleGit {
   return simpleGit(dir);
+}
+
+export async function assertIsGitRepo(git: SimpleGit, absPath: string): Promise<void> {
+  const ok = await git.checkIsRepo().catch(() => false);
+  if (!ok) {
+    throw new Error(
+      `Target directory is not a git repository: ${absPath}. ` +
+        `agents-md-sync commits and pushes AGENTS.md, so each target must be a git working copy.`,
+    );
+  }
 }
 
 export async function assertCleanWorkingTree(git: SimpleGit): Promise<void> {
@@ -87,62 +96,6 @@ export async function commitSyncChanges(
 
 export async function pushBranch(git: SimpleGit, branch: string): Promise<void> {
   await git.push("origin", branch, ["--force"]);
-}
-
-export async function readLastSyncSha(
-  git: SimpleGit,
-  defaultBranch: string,
-): Promise<{ sha: string; templateDir: string } | null> {
-  try {
-    const out = await git.raw([
-      "log",
-      defaultBranch,
-      "--grep=X-AgentsMd-Sync-Source:",
-      "-n",
-      "1",
-      "--format=%B",
-    ]);
-    const match = out.match(/X-AgentsMd-Sync-Source:\s*([^\s@]+)@([0-9a-f]+)/);
-    if (!match || !match[1] || !match[2]) return null;
-    return { templateDir: match[1], sha: match[2] };
-  } catch {
-    return null;
-  }
-}
-
-export async function templateHeadSha(git: SimpleGit): Promise<string> {
-  return (await git.revparse(["HEAD"])).trim();
-}
-
-export async function templateCommitsSince(
-  git: SimpleGit,
-  sinceSha: string,
-  profile: string,
-): Promise<CommitInfo[]> {
-  try {
-    const range = `${sinceSha}..HEAD`;
-    const out = await git.raw([
-      "log",
-      range,
-      "--format=%H%x1f%at%x1f%B%x1e",
-      "--",
-      `profiles/${profile}`,
-      "common",
-    ]);
-    return parseCommits(out);
-  } catch {
-    return [];
-  }
-}
-
-function parseCommits(raw: string): CommitInfo[] {
-  const out: CommitInfo[] = [];
-  for (const entry of raw.split("\x1e").map((c) => c.trim()).filter(Boolean)) {
-    const [id, ts, message] = entry.split("\x1f");
-    if (!id) continue;
-    out.push({ id, message: (message ?? "").trim(), authorTimestamp: Number(ts) || 0 });
-  }
-  return out;
 }
 
 export function remoteToProjectRepo(url: string): RepoRef {
