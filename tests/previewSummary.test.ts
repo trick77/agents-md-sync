@@ -26,8 +26,8 @@ describe("renderPreviewLines", () => {
     expect(joined).toContain("partials (4 total)");
     expect(joined).toMatch(/✓ PROJECT\s+local only/);
     expect(joined).toContain(".agents/PROJECT.md");
-    expect(joined).toMatch(/✓ CODING\s+central.*local addendum/);
-    expect(joined).toContain(".agents/CODING.md prepended");
+    expect(joined).toMatch(/✓ CODING\s+central\+local/);
+    expect(joined).toContain("addendum from .agents/CODING.md");
     expect(joined).toMatch(/✓ TESTING\s+central only/);
     expect(joined).toMatch(/✗ REVIEW\s+skipped \(listed in target\.skip\)/);
     expect(joined).toContain("composed AGENTS.md:");

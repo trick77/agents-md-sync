@@ -1,5 +1,6 @@
 import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
+import pc from "picocolors";
 import type { BitbucketClient } from "./bitbucket.js";
 import { buildHeader, compose } from "./compose.js";
 import type { Config, Target } from "./config.js";
@@ -56,9 +57,15 @@ export async function syncAll(
 
   if (!opts.apply) {
     logger.info("");
-    logger.info("Preview only — no files changed, no commits, no push.");
-    logger.info("Run with --apply to sync, or --show-output to see the full composed AGENTS.md.");
-    logger.info("See --help for all options.");
+    logger.info(pc.dim("Preview only — no files changed, no commits, no push."));
+    logger.info(
+      pc.dim("Run with ") +
+        pc.cyan("--apply") +
+        pc.dim(" to sync, or ") +
+        pc.cyan("--show-output") +
+        pc.dim(" to see the full composed AGENTS.md."),
+    );
+    logger.info(pc.dim("See ") + pc.cyan("--help") + pc.dim(" for all options."));
   }
 }
 
@@ -75,7 +82,7 @@ async function syncTarget(
   ctx: TemplateCtx,
 ): Promise<void> {
   const targetDir = resolve(config.localGitBaseDir, target.dir);
-  logger.info(`▶ ${target.dir} (profile: ${target.profile})`);
+  logger.info(`${pc.blue("▶")} ${pc.bold(target.dir)} ${pc.dim(`(profile: ${target.profile})`)}`);
 
   const targetGit = gitIn(targetDir);
   await assertIsGitRepo(targetGit, targetDir);
@@ -132,7 +139,7 @@ async function syncTarget(
   if (result.agentsMd.length > AGENTS_MD_WARN_BYTES) {
     const kb = (result.agentsMd.length / 1024).toFixed(1);
     logger.warn(
-      `  composed AGENTS.md is ${kb} KB (threshold: ${AGENTS_MD_WARN_BYTES / 1024} KB) — beyond ~150-200 instructions, LLM instruction-following degrades noticeably`,
+      `    composed AGENTS.md is ${kb} KB (threshold: ${AGENTS_MD_WARN_BYTES / 1024} KB) — beyond ~150-200 instructions, LLM instruction-following degrades noticeably`,
     );
   }
 
@@ -143,7 +150,7 @@ async function syncTarget(
       logger.info(line);
     }
     if (opts.showOutput) {
-      logger.info(`  --- composed AGENTS.md ---\n${result.agentsMd}`);
+      logger.info(`    ${pc.dim("--- composed AGENTS.md ---")}\n${result.agentsMd}`);
     }
     return;
   }
@@ -153,11 +160,11 @@ async function syncTarget(
   }
 
   if (opts.force && !opts.pr) {
-    logger.warn("  --force has no effect without --pr (PR step is skipped)");
+    logger.warn("    --force has no effect without --pr (PR step is skipped)");
   }
 
   if (!opts.pr) {
-    logger.info("  PR step skipped (pass --pr to open a pull request)");
+    logger.info(`    ${pc.dim("PR step skipped (pass --pr to open a pull request)")}`);
   }
 
   let originalRef: string | null = null;
@@ -165,7 +172,7 @@ async function syncTarget(
   if (opts.autostash) {
     originalRef = await getHeadRef(targetGit);
     stashed = await stashPush(targetGit, `agents-md-sync autostash ${new Date().toISOString()}`);
-    if (stashed) logger.info(`  autostash: saved local changes (was on ${originalRef})`);
+    if (stashed) logger.info(`    ${pc.dim("autostash:")} saved local changes ${pc.dim(`(was on ${originalRef})`)}`);
   }
 
   try {
@@ -178,14 +185,14 @@ async function syncTarget(
     }
 
     if (!(await hasStagedChanges(targetGit)) && !opts.force) {
-      logger.info(`  up to date`);
+      logger.info(`    ${pc.green("✓")} up to date`);
       return;
     }
 
     const commitMessage = buildCommitMessage(ctx.templateLabel);
     await commitSyncChanges(targetGit, Object.keys(plannedWrites), commitMessage);
     await pushBranch(targetGit, prBranch);
-    logger.info(`  pushed ${prBranch}`);
+    logger.info(`    ${pc.green("✓")} pushed ${pc.bold(prBranch)}`);
 
     if (opts.pr && client) {
       const prClient = client;
@@ -202,10 +209,10 @@ async function syncTarget(
       const existing = await prClient.findOpenPullRequest(ref, prBranch, defaultBranch);
       if (existing) {
         await prClient.updatePullRequestDescription(ref, existing.id, PR_TITLE, description);
-        logger.info(`  PR #${existing.id} updated ${existing.url}`);
+        logger.info(`    ${pc.green("✓")} PR ${pc.bold(`#${existing.id}`)} updated ${pc.cyan(existing.url)}`);
       } else {
         const pr = await prClient.createPullRequest(ref, prBranch, defaultBranch, PR_TITLE, description);
-        logger.info(`  PR #${pr.id} ${pr.url}`);
+        logger.info(`    ${pc.green("✓")} PR ${pc.bold(`#${pr.id}`)} ${pc.cyan(pr.url)}`);
       }
     }
   } finally {
@@ -213,15 +220,15 @@ async function syncTarget(
       try {
         await targetGit.checkout(originalRef);
       } catch (err) {
-        logger.error(`  autostash: could not restore ${originalRef}:`, err);
+        logger.error(`    autostash: could not restore ${originalRef}:`, err);
       }
       if (stashed) {
         try {
           await stashPop(targetGit);
-          logger.info(`  autostash: restored local changes`);
+          logger.info(`    ${pc.dim("autostash:")} restored local changes`);
         } catch (err) {
           logger.error(
-            `  autostash: pop failed — your changes are preserved in 'git stash list' in ${targetDir}:`,
+            `    autostash: pop failed — your changes are preserved in 'git stash list' in ${targetDir}:`,
             err,
           );
         }
@@ -271,22 +278,26 @@ export function renderPreviewLines(
 ): string[] {
   const lines: string[] = [];
   const scaffoldSet = new Set(scaffoldCandidates);
-  lines.push(`  template: ${templateLabel} (profile: ${profile})`);
-  lines.push(`  partials (${result.order.length} total):`);
+  lines.push(`    ${pc.dim("template:")} ${templateLabel} ${pc.dim(`(profile: ${profile})`)}`);
+  lines.push(`    ${pc.dim(`partials (${result.order.length} total):`)}`);
 
   const nameWidth = Math.max(0, ...result.order.map((e) => e.name.length));
 
   for (const entry of result.order) {
     const padded = entry.name.padEnd(nameWidth);
     if (entry.status === "skipped") {
-      lines.push(`    ✗ ${padded}  skipped (listed in target.skip)`);
+      lines.push(`      ${pc.yellow("✗")} ${padded}  ${pc.yellow("skipped")} ${pc.dim("(listed in target.skip)")}`);
       continue;
     }
     if (entry.status === "missing") {
       if (scaffoldSet.has(entry.name)) {
-        lines.push(`    + ${padded}  will be scaffolded at .agents/${entry.name}.md on --apply`);
+        lines.push(
+          `      ${pc.cyan("+")} ${padded}  ${pc.cyan("will be scaffolded")} ${pc.dim(`at .agents/${entry.name}.md on --apply`)}`,
+        );
       } else {
-        lines.push(`    ! ${padded}  MISSING — no central and no .agents/ override`);
+        lines.push(
+          `      ${pc.red("!")} ${padded}  ${pc.red("MISSING")} ${pc.dim("— no central and no .agents/ override")}`,
+        );
       }
       continue;
     }
@@ -294,11 +305,11 @@ export function renderPreviewLines(
     const custom = entry.customBytes ?? 0;
     const detail =
       entry.source === "both"
-        ? `central (${fmtBytes(central)}) + local addendum (${fmtBytes(custom)}; .agents/${entry.name}.md prepended)`
+        ? `${pc.magenta("central+local")} ${pc.dim(`(${fmtBytes(central)} + ${fmtBytes(custom)} addendum from .agents/${entry.name}.md)`)}`
         : entry.source === "custom"
-          ? `local only (${fmtBytes(custom)}; .agents/${entry.name}.md — no central partial)`
-          : `central only (${fmtBytes(central)})`;
-    lines.push(`    ✓ ${padded}  ${detail}`);
+          ? `${pc.magenta("local only")} ${pc.dim(`(${fmtBytes(custom)}; .agents/${entry.name}.md — no central partial)`)}`
+          : `${pc.magenta("central only")} ${pc.dim(`(${fmtBytes(central)})`)}`;
+    lines.push(`      ${pc.green("✓")} ${padded}  ${detail}`);
   }
 
   const kb = (result.agentsMd.length / 1024).toFixed(1);
@@ -308,8 +319,10 @@ export function renderPreviewLines(
     `addenda on ${result.withCustom.length}`,
   ];
   if (scaffoldCandidates.length > 0) parts.push(`to scaffold ${scaffoldCandidates.length}`);
-  lines.push(`  composed AGENTS.md: ${kb} KB (${parts.join(", ")})`);
-  lines.push(`  [preview] would write AGENTS.md (pass --apply to actually write)`);
+  lines.push(
+    `    ${pc.dim("composed AGENTS.md:")} ${pc.bold(`${kb} KB`)} ${pc.dim(`(${parts.join(", ")})`)}`,
+  );
+  lines.push(`    ${pc.green("[preview]")} would write ${pc.bold("AGENTS.md")} ${pc.dim("(pass --apply to actually write)")}`);
   return lines;
 }
 
