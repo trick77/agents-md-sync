@@ -10,7 +10,6 @@ const EXAMPLES = resolve(ROOT, "examples");
 const TEMPLATES = resolve(EXAMPLES, "template-repo");
 const SAMPLE_TARGETS = resolve(EXAMPLES, "sample-targets");
 const TEMPLATE_LABEL = "TOOLING/agents-md-templates";
-const FAKE_SHA = "<sha>";
 
 async function loadSampleTargetPartials(profile: string): Promise<Record<string, string>> {
   const dir = resolve(SAMPLE_TARGETS, profile);
@@ -30,14 +29,14 @@ async function loadSampleTargetPartials(profile: string): Promise<Record<string,
 }
 
 export async function renderProfile(profile: string): Promise<string> {
-  const template = await loadTemplate(TEMPLATES, profile, FAKE_SHA);
+  const template = await loadTemplate(TEMPLATES, profile);
   const customPartials = await loadSampleTargetPartials(profile);
   const result = compose({
     skeleton: template.skeleton,
     centralPartials: template.partials,
     customPartials,
     skip: [],
-    header: buildHeader(TEMPLATE_LABEL, FAKE_SHA),
+    header: buildHeader(TEMPLATE_LABEL),
   });
 
   if (result.missing.length > 0) {

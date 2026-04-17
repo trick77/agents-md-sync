@@ -28,9 +28,8 @@ describe("loadTemplate", () => {
     const root = await makeTemplateRepo();
     await writeFile(join(root, "profiles", "angular", "REVIEW.md"), "## Review (angular)", "utf8");
 
-    const t = await loadTemplate(root, "angular", "abc123");
+    const t = await loadTemplate(root, "angular");
 
-    expect(t.centralSha).toBe("abc123");
     expect(t.skeleton).toContain("<!-- include: REVIEW.md -->");
     expect(t.partials["CODING"]).toContain("angular");
     expect(t.partials["DO_NOT"]).toContain("common");
@@ -39,14 +38,14 @@ describe("loadTemplate", () => {
 
   it("merges only common partials when the profile dir has no extra markdown", async () => {
     const root = await makeTemplateRepo();
-    const t = await loadTemplate(root, "angular", "sha");
+    const t = await loadTemplate(root, "angular");
     expect(t.partials["CODING"]).toBeDefined();
     expect(Object.keys(t.partials).sort()).toEqual(["CODING", "DO_NOT", "REVIEW"]);
   });
 
   it("throws when the profile directory does not exist", async () => {
     const root = await makeTemplateRepo();
-    await expect(loadTemplate(root, "missing-profile", "sha")).rejects.toThrow();
+    await expect(loadTemplate(root, "missing-profile")).rejects.toThrow();
   });
 
   it("falls back to the default skeleton when the profile has no AGENTS.md.tmpl", async () => {
@@ -55,7 +54,7 @@ describe("loadTemplate", () => {
     await mkdir(join(root, "profiles", "angular"), { recursive: true });
     await writeFile(join(root, "profiles", "angular", "CODING.md"), "## Coding", "utf8");
 
-    const t = await loadTemplate(root, "angular", "sha");
+    const t = await loadTemplate(root, "angular");
 
     expect(t.skeleton).toContain("# Agent Instructions");
     expect(t.skeleton).toContain("<!-- include: PROJECT.md -->");
@@ -72,7 +71,7 @@ describe("loadTemplate", () => {
     );
     await writeFile(join(root, "profiles", "angular", "CODING.md"), "## Coding", "utf8");
 
-    const t = await loadTemplate(root, "angular", "sha");
+    const t = await loadTemplate(root, "angular");
 
     expect(t.skeleton).toBe("# Custom\n<!-- include: CODING.md -->\n");
   });
