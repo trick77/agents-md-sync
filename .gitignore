@@ -5,3 +5,17 @@ coverage/
 .env
 .env.local
 .DS_Store
+
+# Editors / IDEs
+.idea/
+.vscode/
+.vs/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
+
+# Tooling
+.nvmrc
