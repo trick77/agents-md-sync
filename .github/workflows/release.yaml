@@ -1,38 +1,36 @@
-name: Release
+name: release
+
 on:
-  workflow_dispatch:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  id-token: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      id-token: write
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          registry-url: https://registry.npmjs.org
+          registry-url: https://registry.npmjs.org/
           cache: npm
       - run: npm ci
       - run: npm test
       - run: npm run build
-      - name: Read version
-        id: ver
-        run: echo "v=v$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
-      - name: Fail if tag already exists
+      - name: Verify package.json version matches the tag
         run: |
-          if git ls-remote --tags origin "${{ steps.ver.outputs.v }}" | grep -q .; then
-            echo "tag ${{ steps.ver.outputs.v }} already exists — bump package.json"
+          tag="${GITHUB_REF#refs/tags/v}"
+          pkg=$(node -p "require('./package.json').version")
+          if [ "$tag" != "$pkg" ]; then
+            echo "tag $tag does not match package.json $pkg" >&2
             exit 1
           fi
-      - name: Create tag and GitHub Release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "${{ steps.ver.outputs.v }}" \
-            --title "${{ steps.ver.outputs.v }}" \
-            --generate-notes \
-            --target "$GITHUB_SHA"
-      - run: npm publish --provenance --access public
+      - run: npx -y npm@latest publish --access public
+      - uses: softprops/action-gh-release@v3
+        with:
+          generate_release_notes: true
