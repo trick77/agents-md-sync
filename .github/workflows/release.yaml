@@ -18,8 +18,7 @@ jobs:
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org/
-          cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
       - run: npm test
       - run: npm run build
       - name: Verify package.json version matches the tag
@@ -30,7 +29,7 @@ jobs:
             echo "tag $tag does not match package.json $pkg" >&2
             exit 1
           fi
-      - run: npx -y npm@latest publish --access public
+      - run: npm publish
       - uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
