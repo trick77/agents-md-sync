@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="180" viewBox="0 0 720 180" role="img" aria-labelledby="title desc">
+  <title id="title">agents-md-sync</title>
+  <desc id="desc">A product logo showing AGENTS.md instructions syncing from a central template into multiple repositories.</desc>
+  <defs>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#15233b"/>
+      <stop offset="0.52" stop-color="#1e3a5f"/>
+      <stop offset="1" stop-color="#0d3b36"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6ee7b7"/>
+      <stop offset="0.55" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#a78bfa"/>
+    </linearGradient>
+    <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#020617" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <rect width="720" height="180" rx="28" fill="#f8fafc"/>
+  <rect x="16" y="16" width="688" height="148" rx="22" fill="url(#panel)" filter="url(#soft-shadow)"/>
+
+  <g transform="translate(46 43)">
+    <rect x="0" y="0" width="94" height="94" rx="18" fill="#eef6ff" opacity="0.98"/>
+    <path d="M25 26h44M25 42h34M25 58h44M25 74h26" fill="none" stroke="#15233b" stroke-width="7" stroke-linecap="round"/>
+    <path d="M83 28c24 0 33 11 48 26 15 15 24 26 48 26" fill="none" stroke="url(#accent)" stroke-width="8" stroke-linecap="round"/>
+    <path d="M166 60l15 20-15 20" fill="none" stroke="#6ee7b7" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <g transform="translate(203 8)">
+      <rect x="0" y="0" width="42" height="34" rx="7" fill="#dbeafe"/>
+      <rect x="58" y="0" width="42" height="34" rx="7" fill="#ccfbf1"/>
+      <rect x="29" y="52" width="42" height="34" rx="7" fill="#ede9fe"/>
+      <path d="M42 17h16M79 34 62 52M21 34l18 18" fill="none" stroke="#e0f2fe" stroke-width="5" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <g transform="translate(374 64)">
+    <text x="0" y="0" fill="#f8fafc" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="44" font-weight="760" letter-spacing="0">
+      agents-md-sync
+    </text>
+    <text x="2" y="40" fill="#bae6fd" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="17" font-weight="560" letter-spacing="0">
+      compose, sync, and PR your AGENTS.md
+    </text>
+  </g>
+</svg>
