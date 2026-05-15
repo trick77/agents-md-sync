@@ -1,5 +1,5 @@
 <p>
-  <img src="logo.svg" alt="agents-md-sync" width="360">
+  <img src="logo.svg" alt="agents-md-sync" width="720">
 </p>
 
 # agents-md-sync
