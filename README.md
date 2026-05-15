@@ -2,8 +2,6 @@
   <img src="logo.svg" alt="agents-md-sync" width="720">
 </p>
 
-# agents-md-sync
-
 [![CI](https://img.shields.io/github/actions/workflow/status/trick77/agents-md-sync/ci.yaml?branch=master&label=CI)](https://github.com/trick77/agents-md-sync/actions/workflows/ci.yaml)
 [![node](https://img.shields.io/node/v/agents-md-sync)](https://www.npmjs.com/package/agents-md-sync)
 
