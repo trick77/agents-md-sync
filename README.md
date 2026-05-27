@@ -103,6 +103,19 @@ npx agents-md-sync --config targets.json --apply --autostash
 npx agents-md-sync --config targets.json --apply --allow-dirty
 ```
 
+### Config-less single-repo mode
+
+For CI pipelines that run inside a single checked-out repo, you can skip `targets.json` entirely and pass the target on the command line with `--repo` (default: current dir), `--template-dir`, and `--profile`. Optionally repeat `--skip <name>` to omit partials.
+
+Combine it with `--write-only` to **write `AGENTS.md` into the working tree and perform no git operations at all** (no fetch/reset/commit/push). Committing the result is then left to the caller — ideal for a release pipeline that wants to fold the regenerated `AGENTS.md` into its own commit:
+
+```bash
+# Write AGENTS.md into the current repo; no git operations.
+npx agents-md-sync --write-only --repo . --template-dir ../agents-md-templates --profile spring-boot-maven
+```
+
+`--write-only` and `--apply` are mutually exclusive, as are `--config` and the single-repo flags. A missing `PROJECT` partial is scaffolded into `.agents/PROJECT.md` so the run never fails on a fresh repo.
+
 ## Config (`targets.json`)
 
 ```json
