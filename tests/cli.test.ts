@@ -63,4 +63,23 @@ describe("CLI", () => {
     expect(status).toBe(0);
     expect(stdout).toContain(PKG.version);
   }, 30_000);
+
+  it("errors when --write-only and --apply are combined", () => {
+    const { status, stderr } = runCli(["--write-only", "--apply", "--repo", "."]);
+    expect(status).toBe(2);
+    expect(stderr).toContain("mutually exclusive");
+  }, 30_000);
+
+  it("errors when --config is combined with single-repo flags", () => {
+    const { status, stderr } = runCli(["--config", "targets.json", "--profile", "angular"]);
+    expect(status).toBe(2);
+    expect(stderr).toContain("mutually exclusive");
+  }, 30_000);
+
+  it("errors when single-repo mode is missing --template-dir/--profile", () => {
+    const { status, stderr } = runCli(["--repo", "."]);
+    expect(status).toBe(2);
+    expect(stderr).toContain("--template-dir");
+    expect(stderr).toContain("--profile");
+  }, 30_000);
 });

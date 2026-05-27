@@ -34,6 +34,8 @@ export interface SyncOptions {
   showOutput: boolean;
   allowDirty: boolean;
   autostash: boolean;
+  /** Write AGENTS.md into the target working tree; perform no git operations. */
+  writeOnly: boolean;
 }
 
 export async function syncAll(
@@ -55,7 +57,7 @@ export async function syncAll(
     }
   }
 
-  if (!opts.apply) {
+  if (!opts.apply && !opts.writeOnly) {
     logger.info("");
     logger.info(pc.dim("Preview only — no files changed, no commits, no push."));
     logger.info(
@@ -85,12 +87,13 @@ async function syncTarget(
   logger.info(`${pc.blue("▶")} ${pc.bold(target.dir)} ${pc.dim(`(profile: ${target.profile})`)}`);
 
   const targetGit = gitIn(targetDir);
-  await assertIsGitRepo(targetGit, targetDir);
-  if (!opts.allowDirty && !opts.autostash) {
-    await assertCleanWorkingTree(targetGit);
+  if (!opts.writeOnly) {
+    await assertIsGitRepo(targetGit, targetDir);
+    if (!opts.allowDirty && !opts.autostash) {
+      await assertCleanWorkingTree(targetGit);
+    }
   }
 
-  const defaultBranch = await detectDefaultBranch(targetGit);
   const prBranch = config.prBranch;
 
   const template = await loadTemplate(ctx.templateDirAbs, target.profile);
@@ -119,7 +122,7 @@ async function syncTarget(
     }
 
     if (toScaffold.length > 0) {
-      if (opts.apply) {
+      if (opts.apply || opts.writeOnly) {
         await scaffoldMissingPartials(targetDir, toScaffold);
         const refreshedPartials = await readCustomPartials(targetDir);
         result = compose({
@@ -145,6 +148,14 @@ async function syncTarget(
 
   const plannedWrites = buildPlannedWrites(result.agentsMd);
 
+  if (opts.writeOnly) {
+    await writePlannedWrites(targetDir, plannedWrites);
+    logger.info(
+      `    ${pc.green("✓")} wrote ${pc.bold(Object.keys(plannedWrites).join(", "))} ${pc.dim("(write-only: no git operations)")}`,
+    );
+    return;
+  }
+
   if (!opts.apply) {
     for (const line of renderPreviewLines(result, ctx.templateLabel, target.profile, scaffoldCandidates)) {
       logger.info(line);
@@ -158,6 +169,8 @@ async function syncTarget(
   if (opts.pr && !client) {
     throw new Error("BitbucketClient is required for --apply --pr runs");
   }
+
+  const defaultBranch = await detectDefaultBranch(targetGit);
 
   if (opts.force && !opts.pr) {
     logger.warn("    --force has no effect without --pr (PR step is skipped)");
@@ -174,11 +187,7 @@ async function syncTarget(
   try {
     await prepareTargetRepo(targetGit, defaultBranch, prBranch);
 
-    for (const [path, content] of Object.entries(plannedWrites)) {
-      const full = resolve(targetDir, path);
-      await mkdir(dirname(full), { recursive: true });
-      await writeFile(full, content, "utf8");
-    }
+    await writePlannedWrites(targetDir, plannedWrites);
 
     if (!(await hasStagedChanges(targetGit)) && !opts.force) {
       logger.info(`    ${pc.green("✓")} up to date`);
@@ -256,6 +265,17 @@ async function readCustomPartials(targetDir: string): Promise<Record<string, str
 
 function buildPlannedWrites(agentsMd: string): Record<string, string> {
   return { "AGENTS.md": agentsMd };
+}
+
+async function writePlannedWrites(
+  targetDir: string,
+  plannedWrites: Record<string, string>,
+): Promise<void> {
+  for (const [path, content] of Object.entries(plannedWrites)) {
+    const full = resolve(targetDir, path);
+    await mkdir(dirname(full), { recursive: true });
+    await writeFile(full, content, "utf8");
+  }
 }
 
 export function renderPreviewLines(
