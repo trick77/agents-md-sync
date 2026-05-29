@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 export interface ResolvedTemplate {
   skeleton: string;
-  partials: Record<string, string>;
+  fragments: Record<string, string>;
 }
 
 export const DEFAULT_SKELETON = `<!-- include: PROJECT.md -->
@@ -44,12 +44,12 @@ export async function loadTemplate(
   }
 
   const common = await loadMarkdownDir(resolve(rootDir, "common"));
-  // Profile partials live alongside AGENTS.md.tmpl; only *.md files are picked up,
-  // so the .tmpl skeleton is naturally excluded. Any stray .md here becomes a partial.
-  const profilePartials = await loadMarkdownDir(profileDir);
-  const partials = { ...common, ...profilePartials };
+  // Profile fragments live alongside AGENTS.md.tmpl; only *.md files are picked up,
+  // so the .tmpl skeleton is naturally excluded. Any stray .md here becomes a fragment.
+  const profileFragments = await loadMarkdownDir(profileDir);
+  const fragments = { ...common, ...profileFragments };
 
-  return { skeleton, partials };
+  return { skeleton, fragments };
 }
 
 async function loadMarkdownDir(dir: string): Promise<Record<string, string>> {

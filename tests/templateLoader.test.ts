@@ -24,23 +24,23 @@ async function makeTemplateRepo(): Promise<string> {
 }
 
 describe("loadTemplate", () => {
-  it("merges common and profile partials, profile wins on conflict", async () => {
+  it("merges common and profile fragments, profile wins on conflict", async () => {
     const root = await makeTemplateRepo();
     await writeFile(join(root, "profiles", "angular", "REVIEW.md"), "## Review (angular)", "utf8");
 
     const t = await loadTemplate(root, "angular");
 
     expect(t.skeleton).toContain("<!-- include: REVIEW.md -->");
-    expect(t.partials["CODING"]).toContain("angular");
-    expect(t.partials["DO_NOT"]).toContain("common");
-    expect(t.partials["REVIEW"]).toBe("## Review (angular)");
+    expect(t.fragments["CODING"]).toContain("angular");
+    expect(t.fragments["DO_NOT"]).toContain("common");
+    expect(t.fragments["REVIEW"]).toBe("## Review (angular)");
   });
 
-  it("merges only common partials when the profile dir has no extra markdown", async () => {
+  it("merges only common fragments when the profile dir has no extra markdown", async () => {
     const root = await makeTemplateRepo();
     const t = await loadTemplate(root, "angular");
-    expect(t.partials["CODING"]).toBeDefined();
-    expect(Object.keys(t.partials).sort()).toEqual(["CODING", "DO_NOT", "REVIEW"]);
+    expect(t.fragments["CODING"]).toBeDefined();
+    expect(Object.keys(t.fragments).sort()).toEqual(["CODING", "DO_NOT", "REVIEW"]);
   });
 
   it("throws when the profile directory does not exist", async () => {

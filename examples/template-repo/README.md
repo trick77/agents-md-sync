@@ -2,7 +2,7 @@
 
 Central template repo consumed by [`agents-md-sync`](https://www.npmjs.com/package/agents-md-sync) to keep `AGENTS.md` in sync across many target repositories.
 
-## Authoring partials — keep them minimal
+## Authoring fragments — keep them minimal
 
 A February 2026 ETH Zurich / LogicStar.ai study ([arXiv 2602.11988](https://arxiv.org/abs/2602.11988)) evaluated `AGENTS.md` against SWE-bench and a novel benchmark of real developer-committed context files. Headline findings:
 
@@ -12,25 +12,25 @@ A February 2026 ETH Zurich / LogicStar.ai study ([arXiv 2602.11988](https://arxi
 - Both LLM-generated and human-written files pushed agents into unnecessary exploration (extra testing, file traversal) because agents follow the instructions they're given.
 - The authors' guidance: *"human-written context files should describe only minimal requirements."*
 
-What this means for partials in this repo:
+What this means for fragments in this repo:
 
 - **Steering only.** Do/don't rules, conventions, non-obvious build/test commands, project-specific gotchas. Imperative voice.
 - **No file catalogs, directory trees, or architecture overviews.** Anything an agent could derive from `ls`, `grep`, or reading the code is dead weight.
 - **No LLM-generated prose.** Hand-written and short.
-- **One topic per partial** (CODING, TESTING, BUILD, …) so targets can `skip` what doesn't apply.
-- Aim for a tight character budget per partial; the merged `AGENTS.md` is loaded on every turn.
+- **One topic per fragment** (CODING, TESTING, BUILD, …) so targets can `skip` what doesn't apply.
+- Aim for a tight character budget per fragment; the merged `AGENTS.md` is loaded on every turn.
 
 ### Caveat: the study only measures task-completion agents
 
 The ETH study evaluates whether `AGENTS.md` helps an autonomous coding agent close issues on SWE-bench. It does **not** evaluate the other common use of these files: giving context to **non-coding agents** in the same repo — review agents, security-review agents, refactor advisors, doc generators, PR triage bots. Those agents aren't measured by patch-correctness on a benchmark; they need to know the project's conventions to give useful judgments, and an empty `AGENTS.md` makes them generic.
 
-Practical reading: keep partials minimal for the sake of the coding agent, but don't strip out the conventions a reviewer would need to flag a violation. Rules a review agent would cite (`testee` naming, AssertJ-only, Swiss orthography, "don't push to master") earn their tokens even if a coding agent could have completed the task without them.
+Practical reading: keep fragments minimal for the sake of the coding agent, but don't strip out the conventions a reviewer would need to flag a violation. Rules a review agent would cite (`testee` naming, AssertJ-only, Swiss orthography, "don't push to master") earn their tokens even if a coding agent could have completed the task without them.
 
 ## What this does
 
 For each target repo, `agents-md-sync` generates an `AGENTS.md` by combining two sources:
 
-1. **Central partials from this template directory** (`common/` + `profiles/<profile>/`) — the shared, per-stack instructions maintained in one place.
+1. **Central fragments from this template directory** (`common/` + `profiles/<profile>/`) — the shared, per-stack instructions maintained in one place.
 2. **Per-target addenda from the target repo's `.agents/` directory** (optional) — repo-specific rules the target's maintainers want layered on top.
 
 For every `<!-- include: NAME.md -->` marker in the skeleton, the tool looks for:
@@ -45,7 +45,7 @@ Net effect: you edit shared instructions once in this template repo, and each ta
 
 ```
 .
-├── common/                # shared partials — apply to every profile
+├── common/                # shared fragments — apply to every profile
 │   ├── REVIEW.md
 │   └── DO_NOT.md
 └── profiles/              # one directory per tech stack
@@ -59,7 +59,7 @@ Net effect: you edit shared instructions once in this template repo, and each ta
         └── BUILD.md
 ```
 
-Partial resolution for each `<!-- include: NAME.md -->` marker in the skeleton:
+Fragment resolution for each `<!-- include: NAME.md -->` marker in the skeleton:
 
 1. If `NAME` is in the target's `skip` list → omit.
 2. If the target's `.agents/NAME.md` exists → prepended to the central version.

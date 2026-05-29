@@ -4,7 +4,7 @@ Instructions for AI coding agents working on this repository. For what the tool 
 
 ## Project
 
-Node/TypeScript CLI that composes an `AGENTS.md` from markdown partials held in a central Bitbucket template repo, commits and pushes the result to a tool-owned branch on each target Bitbucket Data Center repo, and — when `--pr` is passed — opens or updates a pull request for that branch. Greenfield — currently only README and this file exist.
+Node/TypeScript CLI that composes an `AGENTS.md` from markdown fragments held in a central Bitbucket template repo, commits and pushes the result to a tool-owned branch on each target Bitbucket Data Center repo, and — when `--pr` is passed — opens or updates a pull request for that branch. Greenfield — currently only README and this file exist.
 
 ## Stack
 
@@ -22,7 +22,7 @@ Node/TypeScript CLI that composes an `AGENTS.md` from markdown partials held in 
 - No comments that restate the code. Only comment non-obvious *why*.
 - Use Node's built-in `fetch` unless a specific `undici` feature is needed.
 - Do NOT introduce a heavy templating engine. Include markers are `<!-- include: NAME.md -->` and are resolved by simple string replacement.
-- Partial resolution is profile-aware: `profiles/<profile>/NAME.md` wins over `common/NAME.md`. Keep `compose.ts` pure and test both paths.
+- Fragment resolution is profile-aware: `profiles/<profile>/NAME.md` wins over `common/NAME.md`. Keep `compose.ts` pure and test both paths.
 - The default `AGENTS.md.tmpl` skeleton lives as a `DEFAULT_SKELETON` constant in `src/templateLoader.ts`. A profile can opt into a bespoke skeleton by dropping `AGENTS.md.tmpl` into its directory; absent that file, the default is used.
 - v1 allows exactly ONE profile per target. Multi-profile (polyglot) support is out of scope. Do not add it without a design discussion.
 
@@ -32,7 +32,7 @@ Node/TypeScript CLI that composes an `AGENTS.md` from markdown partials held in 
 - `src/compose.ts` MUST be covered by unit tests — it is the only pure-logic module and the heart of the tool.
 - Network-touching code (`src/bitbucket.ts`, `src/sync.ts`) is tested via mocked `fetch` or integration tests against a sandbox repo, never against real production Bitbucket repos.
 - Run tests with `npm test` (vitest). Every PR must pass tests locally before opening.
-- **Sample outputs are golden fixtures.** `examples/sample-output-<profile>.md` is re-rendered on every build and test run by composing each profile in `examples/template-repo/profiles/` against `examples/template-repo/common/`. `npm run build` and `npm test` both invoke the render step. If a profile partial changes, the sample file must be updated in the same commit. CI fails if committed samples drift from what `compose.ts` produces.
+- **Sample outputs are golden fixtures.** `examples/sample-output-<profile>.md` is re-rendered on every build and test run by composing each profile in `examples/template-repo/profiles/` against `examples/template-repo/common/`. `npm run build` and `npm test` both invoke the render step. If a profile fragment changes, the sample file must be updated in the same commit. CI fails if committed samples drift from what `compose.ts` produces.
 
 ## Review & Git
 

@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { buildHeader, compose } from "../src/compose.js";
 
 describe("compose", () => {
-  it("replaces include markers with central partials", () => {
+  it("replaces include markers with central fragments", () => {
     const result = compose({
       skeleton: "# Title\n\n<!-- include: CODING.md -->\n\n<!-- include: TESTING.md -->\n",
-      centralPartials: { CODING: "## Coding\n\n- rule", TESTING: "## Testing\n\n- rule" },
-      customPartials: {},
+      centralFragments: { CODING: "## Coding\n\n- rule", TESTING: "## Testing\n\n- rule" },
+      customFragments: {},
       skip: [],
     });
     expect(result.agentsMd).toContain("## Coding");
@@ -18,8 +18,8 @@ describe("compose", () => {
   it("prepends CUSTOM content before central content", () => {
     const result = compose({
       skeleton: "<!-- include: CODING.md -->\n",
-      centralPartials: { CODING: "## Coding\n\n- central rule" },
-      customPartials: { CODING: "- repo-specific rule" },
+      centralFragments: { CODING: "## Coding\n\n- central rule" },
+      customFragments: { CODING: "- repo-specific rule" },
       skip: [],
     });
     expect(result.agentsMd).toContain("- central rule");
@@ -33,8 +33,8 @@ describe("compose", () => {
   it("ignores empty CUSTOM files", () => {
     const result = compose({
       skeleton: "<!-- include: CODING.md -->\n",
-      centralPartials: { CODING: "## Coding" },
-      customPartials: { CODING: "   \n\n  " },
+      centralFragments: { CODING: "## Coding" },
+      customFragments: { CODING: "   \n\n  " },
       skip: [],
     });
     expect(result.withCustom).toEqual([]);
@@ -43,8 +43,8 @@ describe("compose", () => {
   it("omits skipped sections and tracks them", () => {
     const result = compose({
       skeleton: "<!-- include: CODING.md -->\n<!-- include: TESTING.md -->\n",
-      centralPartials: { CODING: "## Coding", TESTING: "## Testing" },
-      customPartials: {},
+      centralFragments: { CODING: "## Coding", TESTING: "## Testing" },
+      customFragments: {},
       skip: ["TESTING"],
     });
     expect(result.agentsMd).toContain("## Coding");
@@ -53,11 +53,11 @@ describe("compose", () => {
     expect(result.skipped).toEqual(["TESTING"]);
   });
 
-  it("uses a custom partial when the central one is absent", () => {
+  it("uses a custom fragment when the central one is absent", () => {
     const result = compose({
       skeleton: "<!-- include: PROJECT.md -->\n",
-      centralPartials: {},
-      customPartials: { PROJECT: "## Project\n\nPer-repo description." },
+      centralFragments: {},
+      customFragments: { PROJECT: "## Project\n\nPer-repo description." },
       skip: [],
     });
     expect(result.agentsMd).toContain("Per-repo description.");
@@ -66,21 +66,21 @@ describe("compose", () => {
     expect(result.withCustom).toEqual(["PROJECT"]);
   });
 
-  it("reports a partial missing when neither central nor custom provides it", () => {
+  it("reports a fragment missing when neither central nor custom provides it", () => {
     const result = compose({
       skeleton: "<!-- include: PROJECT.md -->\n",
-      centralPartials: {},
-      customPartials: {},
+      centralFragments: {},
+      customFragments: {},
       skip: [],
     });
     expect(result.missing).toEqual(["PROJECT"]);
   });
 
-  it("reports missing partials without throwing", () => {
+  it("reports missing fragments without throwing", () => {
     const result = compose({
       skeleton: "<!-- include: NOPE.md -->",
-      centralPartials: {},
-      customPartials: {},
+      centralFragments: {},
+      customFragments: {},
       skip: [],
     });
     expect(result.missing).toEqual(["NOPE"]);
@@ -90,8 +90,8 @@ describe("compose", () => {
     const header = buildHeader("TOOLING/agents-md-templates");
     const result = compose({
       skeleton: "# Title\n",
-      centralPartials: {},
-      customPartials: {},
+      centralFragments: {},
+      customFragments: {},
       skip: [],
       header,
     });

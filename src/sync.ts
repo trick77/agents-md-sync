@@ -21,7 +21,7 @@ import {
 } from "./git.js";
 import { logger } from "./logger.js";
 import { loadTemplate } from "./templateLoader.js";
-import { scaffoldMissingPartials } from "./scaffold.js";
+import { scaffoldMissingFragments } from "./scaffold.js";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
@@ -97,38 +97,38 @@ async function syncTarget(
   const prBranch = config.prBranch;
 
   const template = await loadTemplate(ctx.templateDirAbs, target.profile);
-  const customPartials = await readCustomPartials(targetDir);
+  const customFragments = await readCustomFragments(targetDir);
 
   const header = buildHeader(ctx.templateLabel);
   let result = compose({
     skeleton: template.skeleton,
-    centralPartials: template.partials,
-    customPartials,
+    centralFragments: template.fragments,
+    customFragments,
     skip: target.skip,
     header,
   });
 
-  const SCAFFOLD_PARTIALS = new Set(["PROJECT"]);
+  const SCAFFOLD_FRAGMENTS = new Set(["PROJECT"]);
   let scaffoldCandidates: string[] = [];
 
   if (result.missing.length > 0) {
-    const toScaffold = result.missing.filter((n) => SCAFFOLD_PARTIALS.has(n));
-    const unresolved = result.missing.filter((n) => !SCAFFOLD_PARTIALS.has(n));
+    const toScaffold = result.missing.filter((n) => SCAFFOLD_FRAGMENTS.has(n));
+    const unresolved = result.missing.filter((n) => !SCAFFOLD_FRAGMENTS.has(n));
 
     if (unresolved.length > 0) {
       throw new Error(
-        `Skeleton references partials not found in central templates or .agents/: ${unresolved.join(", ")}`,
+        `Skeleton references fragments not found in central templates or .agents/: ${unresolved.join(", ")}`,
       );
     }
 
     if (toScaffold.length > 0) {
       if (opts.apply || opts.writeOnly) {
-        await scaffoldMissingPartials(targetDir, toScaffold);
-        const refreshedPartials = await readCustomPartials(targetDir);
+        await scaffoldMissingFragments(targetDir, toScaffold);
+        const refreshedFragments = await readCustomFragments(targetDir);
         result = compose({
           skeleton: template.skeleton,
-          centralPartials: template.partials,
-          customPartials: refreshedPartials,
+          centralFragments: template.fragments,
+          customFragments: refreshedFragments,
           skip: target.skip,
           header,
         });
@@ -246,7 +246,7 @@ async function syncTarget(
   }
 }
 
-async function readCustomPartials(targetDir: string): Promise<Record<string, string>> {
+async function readCustomFragments(targetDir: string): Promise<Record<string, string>> {
   const dir = resolve(targetDir, ".agents");
   const out: Record<string, string> = {};
   let files: string[];
@@ -299,7 +299,7 @@ export function renderPreviewLines(
   const lines: string[] = [];
   const scaffoldSet = new Set(scaffoldCandidates);
   lines.push(`    ${pc.dim("template:")} ${templateLabel} ${pc.dim(`(profile: ${profile})`)}`);
-  lines.push(`    ${pc.dim(`partials (${result.order.length} total):`)}`);
+  lines.push(`    ${pc.dim(`fragments (${result.order.length} total):`)}`);
 
   const nameWidth = Math.max(0, ...result.order.map((e) => e.name.length));
 
@@ -327,7 +327,7 @@ export function renderPreviewLines(
       entry.source === "both"
         ? `${pc.magenta("central+local")} ${pc.dim(`(${fmtBytes(central)} + ${fmtBytes(custom)} addendum from .agents/${entry.name}.md)`)}`
         : entry.source === "custom"
-          ? `${pc.magenta("local only")} ${pc.dim(`(${fmtBytes(custom)}; .agents/${entry.name}.md — no central partial)`)}`
+          ? `${pc.magenta("local only")} ${pc.dim(`(${fmtBytes(custom)}; .agents/${entry.name}.md — no central fragment)`)}`
           : `${pc.magenta("central only")} ${pc.dim(`(${fmtBytes(central)})`)}`;
     lines.push(`      ${pc.green("✓")} ${padded}  ${detail}`);
   }

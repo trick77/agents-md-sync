@@ -11,7 +11,7 @@ const TEMPLATES = resolve(EXAMPLES, "template-repo");
 const SAMPLE_TARGETS = resolve(EXAMPLES, "sample-targets");
 const TEMPLATE_LABEL = "TOOLING/agents-md-templates";
 
-async function loadSampleTargetPartials(profile: string): Promise<Record<string, string>> {
+async function loadSampleTargetFragments(profile: string): Promise<Record<string, string>> {
   const dir = resolve(SAMPLE_TARGETS, profile);
   const out: Record<string, string> = {};
   let files: string[];
@@ -30,17 +30,17 @@ async function loadSampleTargetPartials(profile: string): Promise<Record<string,
 
 export async function renderProfile(profile: string): Promise<string> {
   const template = await loadTemplate(TEMPLATES, profile);
-  const customPartials = await loadSampleTargetPartials(profile);
+  const customFragments = await loadSampleTargetFragments(profile);
   const result = compose({
     skeleton: template.skeleton,
-    centralPartials: template.partials,
-    customPartials,
+    centralFragments: template.fragments,
+    customFragments,
     skip: [],
     header: buildHeader(TEMPLATE_LABEL),
   });
 
   if (result.missing.length > 0) {
-    throw new Error(`Profile '${profile}' references missing partials: ${result.missing.join(", ")}`);
+    throw new Error(`Profile '${profile}' references missing fragments: ${result.missing.join(", ")}`);
   }
   return result.agentsMd;
 }

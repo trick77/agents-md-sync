@@ -9,7 +9,7 @@
 
 **What this does.** `agents-md-sync` keeps `AGENTS.md` in sync across many repositories from a single central template repo. You edit shared instructions in one place; each target repo can still add its own per-section addenda under `.agents/` that the tool never touches.
 
-**How it works.** Local-first: the tool operates on a local directory of template partials plus whatever local working copies of the target repos you already have on disk — the same checkouts you use for daily development are fine. It composes `AGENTS.md` from markdown partials and commits once per sync on a tool-owned branch that it force-pushes to `origin`. A thin, pluggable adapter then opens or updates the pull request on your code host (see [PR hosting](#pr-hosting) for which hosts are wired up today).
+**How it works.** Local-first: the tool operates on a local directory of template fragments plus whatever local working copies of the target repos you already have on disk — the same checkouts you use for daily development are fine. It composes `AGENTS.md` from markdown fragments and commits once per sync on a tool-owned branch that it force-pushes to `origin`. A thin, pluggable adapter then opens or updates the pull request on your code host (see [PR hosting](#pr-hosting) for which hosts are wired up today).
 
 ## Model
 
@@ -19,8 +19,8 @@ Each target repo ends up with:
 <target repo>/
 ├── AGENTS.md                 # generated; always overwritten by the tool
 └── .agents/                  # optional; 100% repo-owned, never written by the tool
-    ├── CODING.md             # optional addendum to the central CODING partial
-    ├── TESTING.md            # optional addendum to the central TESTING partial
+    ├── CODING.md             # optional addendum to the central CODING fragment
+    ├── TESTING.md            # optional addendum to the central TESTING fragment
     └── ...
 ```
 
@@ -43,7 +43,7 @@ The local addendum goes on top so repo-specific rules get read first — by huma
 For each target working copy listed in the config:
 
 1. `git fetch origin` and hard-reset to the default branch.
-2. Reads the profile skeleton + partials from the local template directory.
+2. Reads the profile skeleton + fragments from the local template directory.
 3. Reads any `.agents/<NAME>.md` files already present in the target checkout and treats them as per-section addenda.
 4. Composes `AGENTS.md`.
 5. Creates/resets the local `feature/update-agents-md` branch, commits changes, force-pushes.
@@ -54,7 +54,7 @@ One commit per sync. Git uses your existing credentials (SSH key or credential h
 ## Prerequisites
 
 1. Node 22+.
-2. A local directory containing the template partials (see [Template repo layout](#template-repo-layout)). It doesn't need to be a git repo — a plain folder works. Versioning it in git is recommended for teams, but not required by the tool.
+2. A local directory containing the template fragments (see [Template repo layout](#template-repo-layout)). It doesn't need to be a git repo — a plain folder works. Versioning it in git is recommended for teams, but not required by the tool.
 3. Local working copies of each target repo on the same machine where the tool runs. Each target must be a git working copy, since the sync commits `AGENTS.md` and force-pushes it. If you already have them checked out for normal work, use those paths directly — the tool does no cloning.
 4. An HTTP access token for your PR host, used only when running with `--apply --pr`. See [PR hosting](#pr-hosting) for the env var name and token scopes.
 
@@ -72,7 +72,7 @@ To work on the tool itself, see [From source](#from-source).
 
 ## Usage
 
-**By default the tool never writes anything.** The default run is a preview that prints a concise per-target summary (what would be written, which partials were included/skipped/addenda'd) and no file content. Pass `--apply` to commit and push; `--pr` to also open or update a pull request.
+**By default the tool never writes anything.** The default run is a preview that prints a concise per-target summary (what would be written, which fragments were included/skipped/addenda'd) and no file content. Pass `--apply` to commit and push; `--pr` to also open or update a pull request.
 
 Run with no arguments to see usage and examples:
 
@@ -105,7 +105,7 @@ npx agents-md-sync --config targets.json --apply --allow-dirty
 
 ### Config-less single-repo mode
 
-For CI pipelines that run inside a single checked-out repo, you can skip `targets.json` entirely and pass the target on the command line with `--repo` (default: current dir), `--template-dir`, and `--profile`. Optionally repeat `--skip <name>` to omit partials.
+For CI pipelines that run inside a single checked-out repo, you can skip `targets.json` entirely and pass the target on the command line with `--repo` (default: current dir), `--template-dir`, and `--profile`. Optionally repeat `--skip <name>` to omit fragments.
 
 Combine it with `--write-only` to **write `AGENTS.md` into the working tree and perform no git operations at all** (no fetch/reset/commit/push). Committing the result is then left to the caller — ideal for a release pipeline that wants to fold the regenerated `AGENTS.md` into its own commit:
 
@@ -114,7 +114,7 @@ Combine it with `--write-only` to **write `AGENTS.md` into the working tree and 
 npx agents-md-sync --write-only --repo . --template-dir ../agents-md-templates --profile spring-boot-maven
 ```
 
-`--write-only` and `--apply` are mutually exclusive, as are `--config` and the single-repo flags. A missing `PROJECT` partial is scaffolded into `.agents/PROJECT.md` so the run never fails on a fresh repo.
+`--write-only` and `--apply` are mutually exclusive, as are `--config` and the single-repo flags. A missing `PROJECT` fragment is scaffolded into `.agents/PROJECT.md` so the run never fails on a fresh repo.
 
 ## Config (`targets.json`)
 
@@ -145,13 +145,13 @@ npx agents-md-sync --write-only --repo . --template-dir ../agents-md-templates -
 - Each target:
   - `dir` — path to the target working copy. Relative to `localGitBaseDir`, or absolute.
   - `profile` — selects `profiles/<name>/` in the template repo.
-  - `skip` — optional list of partial names to omit.
+  - `skip` — optional list of fragment names to omit.
 
 The default branch for each target is detected from its local clone (`git symbolic-ref refs/remotes/origin/HEAD`); no per-target `branch` field is needed.
 
 ## Template repo layout
 
-Partials are organized by **profile** (one per tech stack). Shared partials live in `common/`.
+Fragments are organized by **profile** (one per tech stack). Shared fragments live in `common/`.
 
 ```
 agents-md-templates/
@@ -167,11 +167,11 @@ agents-md-templates/
         └── ...
 ```
 
-A profile's identity is its partials (`CODING.md` / `TESTING.md` / `BUILD.md`), not how they are ordered in the rendered output. The tool ships a default `AGENTS.md.tmpl` skeleton that includes `PROJECT`, `CODING`, `TESTING`, `BUILD`, `REVIEW`, and `DO_NOT` in that order — so profiles normally contain only partials. Drop an `AGENTS.md.tmpl` into a profile directory only when you want to override the default ordering or section set for that one profile.
+A profile's identity is its fragments (`CODING.md` / `TESTING.md` / `BUILD.md`), not how they are ordered in the rendered output. The tool ships a default `AGENTS.md.tmpl` skeleton that includes `PROJECT`, `CODING`, `TESTING`, `BUILD`, `REVIEW`, and `DO_NOT` in that order — so profiles normally contain only fragments. Drop an `AGENTS.md.tmpl` into a profile directory only when you want to override the default ordering or section set for that one profile.
 
 Every target repo must provide its own `.agents/PROJECT.md`. `PROJECT` is the root section of the rendered `AGENTS.md` — it describes what the service does and is inherently per-repo, so there is no central default. Sync fails loudly if it's missing.
 
-Any `*.md` file in the target's `.agents/` directory becomes an available partial, regardless of whether the central template defines one with the same name. This lets targets both override central partials and add their own (like `PROJECT`).
+Any `*.md` file in the target's `.agents/` directory becomes an available fragment, regardless of whether the central template defines one with the same name. This lets targets both override central fragments and add their own (like `PROJECT`).
 
 Resolution for each `<!-- include: NAME.md -->` marker:
 1. If `NAME` is in the target's `skip` → omit.
@@ -180,7 +180,7 @@ Resolution for each `<!-- include: NAME.md -->` marker:
 4. Else if `common/NAME.md` exists → use that.
 5. Else → error.
 
-Write partials **for the agent**, not for humans. Every line should shape a decision the agent actually makes while writing or pushing code — constraints on tools, tests, dependencies, commit hygiene. Human-workflow items like "PRs need one approving review" or "keep diffs under 400 lines" belong in `CONTRIBUTING.md` or branch-protection rules; in an `AGENTS.md` they just burn context window. The example partials under `examples/template-repo/` show the intended shape.
+Write fragments **for the agent**, not for humans. Every line should shape a decision the agent actually makes while writing or pushing code — constraints on tools, tests, dependencies, commit hygiene. Human-workflow items like "PRs need one approving review" or "keep diffs under 400 lines" belong in `CONTRIBUTING.md` or branch-protection rules; in an `AGENTS.md` they just burn context window. The example fragments under `examples/template-repo/` show the intended shape.
 
 ## Safety
 
@@ -195,7 +195,7 @@ Write partials **for the agent**, not for humans. Every line should shape a deci
 
 - `--apply` alone commits and force-pushes the tool-owned branch `feature/update-agents-md`, but does **not** open or touch any pull request. No host API token is required.
 - `--apply --pr` additionally opens a PR from that branch, or updates the description of an existing open PR instead of creating a duplicate. This step requires `BITBUCKET_TOKEN`.
-- PR body lists the included/skipped partials and names the template directory the sync was composed from. The PR diff of `AGENTS.md` itself shows exactly what changed.
+- PR body lists the included/skipped fragments and names the template directory the sync was composed from. The PR diff of `AGENTS.md` itself shows exactly what changed.
 
 ## PR hosting
 
@@ -212,7 +212,7 @@ Other hosts (GitHub, GitLab, Bitbucket Cloud) are not yet wired up. Adding one m
 ## Scope
 
 - v1: one PR-host adapter implemented (Bitbucket Data Center).
-- v1: markdown partials only.
+- v1: markdown fragments only.
 - v1: one profile per target (polyglot targets are v2).
 
 ## From source

@@ -7,16 +7,16 @@ const ANSI = /\x1b\[[0-9;]*m/g;
 const stripAnsi = (s: string): string => s.replace(ANSI, "");
 
 describe("renderPreviewLines", () => {
-  it("shows template, profile, per-partial source lines and a composed-size summary", () => {
+  it("shows template, profile, per-fragment source lines and a composed-size summary", () => {
     const result = compose({
       skeleton:
         "<!-- include: PROJECT.md -->\n<!-- include: CODING.md -->\n<!-- include: TESTING.md -->\n<!-- include: REVIEW.md -->\n",
-      centralPartials: {
+      centralFragments: {
         CODING: "## Coding\n- rule",
         TESTING: "## Testing\n- rule",
         REVIEW: "## Review\n- rule",
       },
-      customPartials: {
+      customFragments: {
         PROJECT: "## Project\n- local only",
         CODING: "- repo-specific",
       },
@@ -27,7 +27,7 @@ describe("renderPreviewLines", () => {
     const joined = stripAnsi(lines.join("\n"));
 
     expect(joined).toContain("template: TOOLING/agents-md-templates (profile: angular)");
-    expect(joined).toContain("partials (4 total)");
+    expect(joined).toContain("fragments (4 total)");
     expect(joined).toMatch(/✓ PROJECT\s+local only/);
     expect(joined).toContain(".agents/PROJECT.md");
     expect(joined).toMatch(/✓ CODING\s+central\+local/);
@@ -44,8 +44,8 @@ describe("renderPreviewLines", () => {
   it("does not include the composed content in any line", () => {
     const result = compose({
       skeleton: "<!-- include: CODING.md -->\n",
-      centralPartials: { CODING: "## Coding\n- THE_SECRET_MARKER" },
-      customPartials: {},
+      centralFragments: { CODING: "## Coding\n- THE_SECRET_MARKER" },
+      customFragments: {},
       skip: [],
     });
     const joined = stripAnsi(renderPreviewLines(result, "tpl", "p").join("\n"));
@@ -53,11 +53,11 @@ describe("renderPreviewLines", () => {
     expect(joined).not.toContain("## Coding");
   });
 
-  it("reports missing partials explicitly", () => {
+  it("reports missing fragments explicitly", () => {
     const result = compose({
       skeleton: "<!-- include: NOPE.md -->\n",
-      centralPartials: {},
-      customPartials: {},
+      centralFragments: {},
+      customFragments: {},
       skip: [],
     });
     const joined = stripAnsi(renderPreviewLines(result, "tpl", "p").join("\n"));
@@ -67,8 +67,8 @@ describe("renderPreviewLines", () => {
   it("labels scaffold candidates as 'will be scaffolded on --apply', not MISSING", () => {
     const result = compose({
       skeleton: "<!-- include: PROJECT.md -->\n",
-      centralPartials: {},
-      customPartials: {},
+      centralFragments: {},
+      customFragments: {},
       skip: [],
     });
     const joined = stripAnsi(renderPreviewLines(result, "tpl", "p", ["PROJECT"]).join("\n"));

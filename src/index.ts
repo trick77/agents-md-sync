@@ -64,7 +64,7 @@ async function main(): Promise<void> {
     .option("--repo <dir>", "config-less single-repo mode: target repo dir (default: current dir). Use with --template-dir and --profile instead of --config.")
     .option("--template-dir <path>", "config-less single-repo mode: central template directory")
     .option("--profile <name>", "config-less single-repo mode: profile to use")
-    .option("--skip <name>", "config-less single-repo mode: partial to skip (repeatable)", collect, [])
+    .option("--skip <name>", "config-less single-repo mode: fragment to skip (repeatable)", collect, [])
     .option("--bitbucket-base-url <url>", "config-less single-repo mode: Bitbucket base URL (only needed with --apply --pr)")
     .option("--apply", "actually commit and push. Default is preview only.", false)
     .option("--write-only", "write AGENTS.md into the target working tree and perform no git operations (no commit/push). Mutually exclusive with --apply.", false)
