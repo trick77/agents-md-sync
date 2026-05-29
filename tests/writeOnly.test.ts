@@ -72,7 +72,7 @@ describe("syncAll --write-only", () => {
     expect(await exists(join(targetDir, ".git"))).toBe(false);
   });
 
-  it("scaffolds a missing PROJECT partial so the run does not fail", async () => {
+  it("scaffolds a missing PROJECT fragment so the run does not fail", async () => {
     const templateDir = await makeTemplateRepo();
     const targetDir = await mkdtemp(join(tmpdir(), "agents-md-wo-target-"));
 

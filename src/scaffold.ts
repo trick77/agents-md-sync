@@ -54,7 +54,7 @@ function scaffoldContent(name: string, projectName: string): string {
   return template.replace(/\{\{projectName\}\}/g, projectName);
 }
 
-export async function scaffoldMissingPartials(
+export async function scaffoldMissingFragments(
   targetDir: string,
   missing: string[],
 ): Promise<void> {

@@ -1,18 +1,18 @@
 export interface ComposeInput {
   skeleton: string;
-  centralPartials: Record<string, string>;
-  customPartials: Record<string, string>;
+  centralFragments: Record<string, string>;
+  customFragments: Record<string, string>;
   skip: string[];
   header?: string;
 }
 
-export type PartialSource = "central" | "custom" | "both";
-export type PartialStatus = "included" | "skipped" | "missing";
+export type FragmentSource = "central" | "custom" | "both";
+export type FragmentStatus = "included" | "skipped" | "missing";
 
-export interface PartialEntry {
+export interface FragmentEntry {
   name: string;
-  status: PartialStatus;
-  source?: PartialSource;
+  status: FragmentStatus;
+  source?: FragmentSource;
   centralBytes?: number;
   customBytes?: number;
 }
@@ -23,8 +23,8 @@ export interface ComposeResult {
   skipped: string[];
   withCustom: string[];
   missing: string[];
-  sources: Record<string, PartialSource>;
-  order: PartialEntry[];
+  sources: Record<string, FragmentSource>;
+  order: FragmentEntry[];
 }
 
 const INCLUDE_RE = /<!--\s*include:\s*([A-Za-z0-9_-]+)\.md\s*-->/g;
@@ -35,8 +35,8 @@ export function compose(input: ComposeInput): ComposeResult {
   const skipped: string[] = [];
   const withCustom: string[] = [];
   const missing: string[] = [];
-  const sources: Record<string, PartialSource> = {};
-  const order: PartialEntry[] = [];
+  const sources: Record<string, FragmentSource> = {};
+  const order: FragmentEntry[] = [];
 
   const body = input.skeleton.replace(INCLUDE_RE, (_match, rawName: string) => {
     const name = rawName;
@@ -45,17 +45,17 @@ export function compose(input: ComposeInput): ComposeResult {
       order.push({ name, status: "skipped" });
       return "";
     }
-    const central = input.centralPartials[name];
-    const customRaw = input.customPartials[name];
+    const central = input.centralFragments[name];
+    const customRaw = input.customFragments[name];
     const custom = customRaw !== undefined && customRaw.trim().length > 0 ? customRaw : undefined;
     if (central === undefined && custom === undefined) {
       missing.push(name);
       order.push({ name, status: "missing" });
-      return `<!-- MISSING PARTIAL: ${name}.md -->`;
+      return `<!-- MISSING FRAGMENT: ${name}.md -->`;
     }
     included.push(name);
     if (custom !== undefined) withCustom.push(name);
-    const source: PartialSource =
+    const source: FragmentSource =
       central !== undefined && custom !== undefined ? "both" : custom !== undefined ? "custom" : "central";
     sources[name] = source;
     order.push({
