@@ -6,6 +6,11 @@ updates:
       interval: weekly
     open-pull-requests-limit: 10
     groups:
+      # First matching group wins, so the specific group comes first and the
+      # catch-all stays last. @vitest/coverage-v8 pins vitest's exact version,
+      # so bumping either alone fails npm ci on ERESOLVE. They travel together.
+      vitest:
+        patterns: ["vitest", "@vitest/*"]
       npm-minor-and-patch:
         update-types:
           - minor
