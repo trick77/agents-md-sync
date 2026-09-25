@@ -20,5 +20,4 @@ Thumbs.db
 # Tooling
 .nvmrc
 
-# Local git worktrees
-.agents/worktrees/
+.agents/
