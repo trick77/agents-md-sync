@@ -15,6 +15,12 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # typescript-eslint's peer dependency takes typescript <6.1.0: any newer
+      # one, minor included, fails npm ci on ERESOLVE. Lift this once
+      # typescript-eslint supports newer TS.
+      - dependency-name: "typescript"
+        versions: [">=6.1.0"]
 
   - package-ecosystem: github-actions
     directory: "/"
