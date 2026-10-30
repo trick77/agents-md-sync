@@ -1,7 +1,7 @@
 {
   "name": "agents-md-sync",
-  "version": "0.6.1",
-  "description": "Sync AGENTS.md across many repositories from a central markdown template repo, via pull requests.",
+  "version": "1.0.0",
+  "description": "Compose AGENTS.md from a central markdown template directory and per-repo .agents/ addenda.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -18,7 +18,7 @@
     "markdown",
     "template",
     "sync",
-    "pull-request"
+    "ci"
   ],
   "type": "module",
   "bin": {
@@ -36,29 +36,24 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "npm run check:samples && npm run lint && vitest run",
-    "coverage": "vitest run --coverage",
-    "dev": "tsx src/index.ts",
+    "dev": "node --import tsx src/index.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "render:samples": "tsx scripts/render-samples.ts",
-    "check:samples": "tsx scripts/check-samples.ts",
+    "render:samples": "node --import tsx scripts/render-samples.ts",
+    "check:samples": "node --import tsx scripts/check-samples.ts",
     "prepublishOnly": "npm run build"
   },
   "engines": {
     "node": ">=22"
   },
   "dependencies": {
-    "commander": "^15.0.0",
-    "picocolors": "^1.1.1",
-    "simple-git": "^4.0.2",
-    "zod": "^4.3.6"
+    "commander": "^15.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.0.0",
-    "@vitest/coverage-v8": "^5.0.1",
     "eslint": "^10.2.0",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.8.2",

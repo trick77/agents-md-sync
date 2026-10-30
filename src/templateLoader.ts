@@ -19,10 +19,7 @@ export const DEFAULT_SKELETON = `<!-- include: PROJECT.md -->
 <!-- include: DO_NOT.md -->
 `;
 
-export async function loadTemplate(
-  rootDir: string,
-  profile: string,
-): Promise<ResolvedTemplate> {
+export async function loadTemplate(rootDir: string, profile: string): Promise<ResolvedTemplate> {
   const profileDir = resolve(rootDir, "profiles", profile);
   try {
     const s = await stat(profileDir);

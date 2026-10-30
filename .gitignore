@@ -1,6 +1,5 @@
 node_modules/
 dist/
-coverage/
 *.log
 .env
 .env.local
@@ -20,4 +19,3 @@ Thumbs.db
 # Tooling
 .nvmrc
 
-.agents/
