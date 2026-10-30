@@ -19,3 +19,6 @@ Thumbs.db
 # Tooling
 .nvmrc
 
+
+# Claude Code local state
+.claude/
