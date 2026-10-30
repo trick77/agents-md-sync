@@ -1,12 +1,11 @@
-import { readFile, stat } from "node:fs/promises";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
-import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { scaffoldMissingFragments } from "../src/scaffold.js";
-import { rm } from "node:fs/promises";
+import { scaffoldProject } from "../src/scaffold.js";
 
-describe("scaffoldMissingFragments", () => {
+describe("scaffoldProject", () => {
   let tmpDir: string;
 
   beforeEach(() => {
@@ -17,74 +16,23 @@ describe("scaffoldMissingFragments", () => {
     await rm(tmpDir, { recursive: true, force: true });
   });
 
-  it("creates .agents/ when it does not exist", async () => {
-    await scaffoldMissingFragments(tmpDir, ["PROJECT"]);
-    const s = await stat(join(tmpDir, ".agents"));
-    expect(s.isDirectory()).toBe(true);
+  it("creates .agents/ even when the repo dir does not exist yet", async () => {
+    await scaffoldProject(tmpDir);
+    expect((await stat(join(tmpDir, ".agents"))).isDirectory()).toBe(true);
   });
 
-  it("creates .agents/ when the target dir itself does not exist", async () => {
-    await scaffoldMissingFragments(tmpDir, ["BUILD"]);
-    const s = await stat(join(tmpDir, ".agents"));
-    expect(s.isDirectory()).toBe(true);
+  it("never overwrites an existing PROJECT.md", async () => {
+    await mkdir(join(tmpDir, ".agents"), { recursive: true });
+    await writeFile(join(tmpDir, ".agents", "PROJECT.md"), "mine", "utf8");
+    await expect(scaffoldProject(tmpDir)).rejects.toMatchObject({ code: "EEXIST" });
+    expect(await readFile(join(tmpDir, ".agents", "PROJECT.md"), "utf8")).toBe("mine");
   });
 
-  it("writes PROJECT.md with the target directory name as title", async () => {
-    await scaffoldMissingFragments(tmpDir, ["PROJECT"]);
-    const content = await readFile(join(tmpDir, ".agents", "PROJECT.md"), "utf8");
-    const dirName = tmpDir.split("/").pop()!;
-    expect(content).toMatch(new RegExp(`^## Project ${dirName}`));
+  it("writes PROJECT.md titled with the repo directory name and returns its path", async () => {
+    const path = await scaffoldProject(tmpDir);
+    expect(path).toBe(join(tmpDir, ".agents", "PROJECT.md"));
+    const content = await readFile(path, "utf8");
+    expect(content).toMatch(new RegExp(`^## Project ${tmpDir.split("/").pop()!}`));
     expect(content).toContain("<!--");
-  });
-
-  it("writes CODING.md with a placeholder heading and comment", async () => {
-    await scaffoldMissingFragments(tmpDir, ["CODING"]);
-    const content = await readFile(join(tmpDir, ".agents", "CODING.md"), "utf8");
-    expect(content).toMatch(/^## Coding/);
-    expect(content).toContain("<!--");
-  });
-
-  it("writes TESTING.md with a placeholder heading and comment", async () => {
-    await scaffoldMissingFragments(tmpDir, ["TESTING"]);
-    const content = await readFile(join(tmpDir, ".agents", "TESTING.md"), "utf8");
-    expect(content).toMatch(/^## Testing/);
-    expect(content).toContain("<!--");
-  });
-
-  it("writes BUILD.md with a placeholder heading and comment", async () => {
-    await scaffoldMissingFragments(tmpDir, ["BUILD"]);
-    const content = await readFile(join(tmpDir, ".agents", "BUILD.md"), "utf8");
-    expect(content).toMatch(/^## Build/);
-    expect(content).toContain("<!--");
-  });
-
-  it("writes REVIEW.md with example review guidelines", async () => {
-    await scaffoldMissingFragments(tmpDir, ["REVIEW"]);
-    const content = await readFile(join(tmpDir, ".agents", "REVIEW.md"), "utf8");
-    expect(content).toMatch(/^## Review/);
-    expect(content).toContain("One logical change per PR");
-  });
-
-  it("writes DO_NOT.md with example prohibitions", async () => {
-    await scaffoldMissingFragments(tmpDir, ["DO_NOT"]);
-    const content = await readFile(join(tmpDir, ".agents", "DO_NOT.md"), "utf8");
-    expect(content).toMatch(/^## Do Not/);
-    expect(content).toContain("Do not commit secrets");
-  });
-
-  it("writes a generic placeholder for unknown fragment names", async () => {
-    await scaffoldMissingFragments(tmpDir, ["FOOBAR"]);
-    const content = await readFile(join(tmpDir, ".agents", "FOOBAR.md"), "utf8");
-    expect(content).toMatch(/^## FOOBAR/);
-    expect(content).toContain("<!--");
-    expect(content).toContain("FOOBAR");
-  });
-
-  it("scaffolds multiple missing fragments in one call", async () => {
-    await scaffoldMissingFragments(tmpDir, ["PROJECT", "REVIEW", "FOOBAR"]);
-    for (const name of ["PROJECT", "REVIEW", "FOOBAR"]) {
-      const s = await stat(join(tmpDir, ".agents", `${name}.md`));
-      expect(s.isFile()).toBe(true);
-    }
   });
 });

@@ -1,6 +1,6 @@
 # agents-md-templates
 
-Central template repo consumed by [`agents-md-sync`](https://www.npmjs.com/package/agents-md-sync) to keep `AGENTS.md` in sync across many target repositories.
+Central template repo consumed by [`agents-md-sync`](https://www.npmjs.com/package/agents-md-sync). Each target repo composes its `AGENTS.md` from these fragments in its own pipeline.
 
 ## Authoring fragments — keep them minimal
 
@@ -10,7 +10,7 @@ A February 2026 ETH Zurich / LogicStar.ai study ([arXiv 2602.11988](https://arxi
 - They raised inference cost by **>20%** (re-sent on every API call).
 - Codebase overviews and directory listings did not help — agents discover structure on their own; reading a manual listing burns reasoning tokens.
 - Both LLM-generated and human-written files pushed agents into unnecessary exploration (extra testing, file traversal) because agents follow the instructions they're given.
-- The authors' guidance: *"human-written context files should describe only minimal requirements."*
+- The authors' guidance: _"human-written context files should describe only minimal requirements."_
 
 What this means for fragments in this repo:
 
@@ -34,12 +34,13 @@ For each target repo, `agents-md-sync` generates an `AGENTS.md` by combining two
 2. **Per-target addenda from the target repo's `.agents/` directory** (optional) — repo-specific rules the target's maintainers want layered on top.
 
 For every `<!-- include: NAME.md -->` marker in the skeleton, the tool looks for:
+
 - a matching `.agents/NAME.md` in the target repo (local addendum), and
 - a matching `NAME.md` in this template directory (central baseline).
 
-If both exist, the local addendum is **prepended** to the central version — so repo-specific rules appear first (humans scanning top-down see them first, LLMs give earlier tokens more weight). If only one exists, that one is used alone. The generated `AGENTS.md` is tool-owned and overwritten on every sync; the `.agents/` files are repo-owned and never touched by the tool.
+If both exist, the local addendum is **prepended** to the central version — so repo-specific rules appear first (humans scanning top-down see them first, LLMs give earlier tokens more weight). If only one exists, that one is used alone. The generated `AGENTS.md` is tool-owned and overwritten on every run; the `.agents/` files are repo-owned. The only one the tool ever creates is a placeholder `PROJECT.md`.
 
-Net effect: you edit shared instructions once in this template repo, and each target's `AGENTS.md` reflects both the central baseline *and* whatever local addenda that target has added.
+Net effect: you edit shared instructions once in this template repo, and each target's `AGENTS.md` reflects both the central baseline _and_ whatever local addenda that target has added.
 
 ## Layout
 
@@ -61,7 +62,7 @@ Net effect: you edit shared instructions once in this template repo, and each ta
 
 Fragment resolution for each `<!-- include: NAME.md -->` marker in the skeleton:
 
-1. If `NAME` is in the target's `skip` list → omit.
+1. If `NAME` was passed via `--skip` → omit.
 2. If the target's `.agents/NAME.md` exists → prepended to the central version.
 3. Else `profiles/<profile>/NAME.md` if present.
 4. Else `common/NAME.md` if present.
@@ -73,47 +74,10 @@ Fragment resolution for each `<!-- include: NAME.md -->` marker in the skeleton:
 
 `agents-md-sync` ships a default `AGENTS.md.tmpl` that includes `PROJECT`, `CODING`, `TESTING`, `BUILD`, `REVIEW`, `DO_NOT` in that order. Drop an `AGENTS.md.tmpl` into a profile directory only when you need to override the section set or ordering for that single profile.
 
-## Install the sync tool
-
-Node 22+ required.
-
-```bash
-# Run without installing (recommended — always picks up the latest version)
-npx agents-md-sync --config targets.json
-
-# Or install globally
-npm install -g agents-md-sync
-```
-
 ## Run
 
-By default the tool only previews — no git writes, no push, no PR. Pass `--apply` to commit and force-push the tool-owned branch; add `--pr` to also open or update a pull request.
-
 ```bash
-# Preview what AGENTS.md would look like for every target
-npx agents-md-sync --config targets.json
-
-# Commit and force-push feature/update-agents-md on each target
-npx agents-md-sync --config targets.json --apply
-
-# Also open or update the PR via the configured host adapter
-npx agents-md-sync --config targets.json --apply --pr
+npx agents-md-sync --template-dir /path/to/this/repo --profile spring-boot-maven
 ```
 
-See the upstream [`agents-md-sync` README](https://github.com/trick77/agents-md-sync) for flags, safety rules (`--autostash`, `--allow-dirty`), and PR-host configuration.
-
-## Minimal `targets.json`
-
-```json
-{
-  "localGitBaseDir": "/Users/you/localgit",
-  "templateDir": "agents-md-templates",
-  "bitbucketBaseUrl": "https://bitbucket.example.com",
-  "targets": [
-    { "dir": "my-spring-service", "profile": "spring-boot-maven" },
-    { "dir": "my-angular-app",    "profile": "angular" }
-  ]
-}
-```
-
-`localGitBaseDir` is where the tool expects to find `templateDir` and each `targets[].dir`. Absolute paths in `dir` also work.
+See the [`agents-md-sync` README](https://github.com/trick77/agents-md-sync) for flags and the pipeline setup.

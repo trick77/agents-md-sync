@@ -19,10 +19,7 @@ export const DEFAULT_SKELETON = `<!-- include: PROJECT.md -->
 <!-- include: DO_NOT.md -->
 `;
 
-export async function loadTemplate(
-  rootDir: string,
-  profile: string,
-): Promise<ResolvedTemplate> {
+export async function loadTemplate(rootDir: string, profile: string): Promise<ResolvedTemplate> {
   const profileDir = resolve(rootDir, "profiles", profile);
   try {
     const s = await stat(profileDir);
@@ -52,7 +49,7 @@ export async function loadTemplate(
   return { skeleton, fragments };
 }
 
-async function loadMarkdownDir(dir: string): Promise<Record<string, string>> {
+export async function loadMarkdownDir(dir: string): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
   let files: string[];
   try {

@@ -15,11 +15,7 @@ async function makeTemplateRepo(): Promise<string> {
     "# A\n<!-- include: REVIEW.md -->\n",
     "utf8",
   );
-  await writeFile(
-    join(root, "profiles", "angular", "CODING.md"),
-    "## Coding (angular)",
-    "utf8",
-  );
+  await writeFile(join(root, "profiles", "angular", "CODING.md"), "## Coding (angular)", "utf8");
   return root;
 }
 
