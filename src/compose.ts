@@ -77,7 +77,7 @@ export function compose(input: ComposeInput): ComposeResult {
   return { agentsMd, included, skipped, withCustom, missing, sources, order };
 }
 
-function byteLen(s: string): number {
+export function byteLen(s: string): number {
   return Buffer.byteLength(s, "utf8");
 }
 

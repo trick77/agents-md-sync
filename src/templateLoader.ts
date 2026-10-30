@@ -49,7 +49,7 @@ export async function loadTemplate(rootDir: string, profile: string): Promise<Re
   return { skeleton, fragments };
 }
 
-async function loadMarkdownDir(dir: string): Promise<Record<string, string>> {
+export async function loadMarkdownDir(dir: string): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
   let files: string[];
   try {

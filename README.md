@@ -65,14 +65,19 @@ Warnings go to stderr: a `.agents/*.md` file or `--skip` name that matches no in
 The template directory does not need to be a git repo, but versioning it is the point. Check it out next to the target and run the tool.
 
 ```yaml
-# GitHub Actions example; the same two commands work in any CI.
+# GitHub Actions example; the job needs `permissions: contents: write`.
+# The same commands work in any CI.
 - uses: actions/checkout@v7
 - uses: actions/checkout@v7
   with:
     repository: your-org/agents-md-templates
     path: .agents-md-templates
 - run: npx agents-md-sync --template-dir .agents-md-templates --profile spring-boot-maven
-- run: git add AGENTS.md .agents/PROJECT.md && git diff --cached --quiet || git commit -m "chore: update AGENTS.md"
+- run: |
+    git config user.name "github-actions[bot]"
+    git config user.email "github-actions[bot]@users.noreply.github.com"
+    git add AGENTS.md .agents/PROJECT.md
+    git diff --cached --quiet || (git commit -m "chore: update AGENTS.md" && git push)
 ```
 
 Use `--check` in a pull-request job to fail the build when someone hand-edits `AGENTS.md` or the template moved on.

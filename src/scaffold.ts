@@ -14,6 +14,10 @@ export async function scaffoldProject(repoDir: string): Promise<string> {
   await mkdir(agentsDir, { recursive: true });
   const projectName = basename(resolve(repoDir));
   const filePath = resolve(agentsDir, "PROJECT.md");
-  await writeFile(filePath, PROJECT_TEMPLATE.replace("{{projectName}}", projectName), "utf8");
+  // wx: never clobber a file the repo owns, even if a caller's existence check was wrong
+  await writeFile(filePath, PROJECT_TEMPLATE.replace("{{projectName}}", projectName), {
+    encoding: "utf8",
+    flag: "wx",
+  });
   return filePath;
 }

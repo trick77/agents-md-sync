@@ -24,7 +24,7 @@ Node/TypeScript CLI that composes a repo's `AGENTS.md` from markdown fragments i
 
 ## Testing
 
-- Tests live in `tests/` and mirror `src/`. `src/compose.ts` must stay fully covered.
+- Tests live in `tests/` and mirror `src/`. Every change to `src/compose.ts` ships with a test in `tests/compose.test.ts`.
 - `npm test` runs sample check, lint and vitest. Must pass before opening a PR.
 - **Sample outputs are golden fixtures.** `examples/sample-output-<profile>.md` is rendered from `examples/template-repo/` plus `examples/sample-targets/<profile>/`. Fragment or header change → `npm run render:samples` and commit the result in the same change. CI fails on drift.
 

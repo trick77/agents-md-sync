@@ -1,8 +1,8 @@
-import { readdir, readFile, writeFile } from "node:fs/promises";
+import { readdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { HEADER, compose } from "../src/compose.js";
-import { loadTemplate } from "../src/templateLoader.js";
+import { loadMarkdownDir, loadTemplate } from "../src/templateLoader.js";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const ROOT = resolve(HERE, "..");
@@ -12,13 +12,13 @@ const SAMPLE_TARGETS = resolve(EXAMPLES, "sample-targets");
 
 // sample-targets/<profile>/ stands in for a target repo's .agents/ directory
 async function loadSampleTargetFragments(profile: string): Promise<Record<string, string>> {
-  const dir = resolve(SAMPLE_TARGETS, profile);
-  const out: Record<string, string> = {};
-  for (const f of await readdir(dir)) {
-    if (!f.endsWith(".md")) continue;
-    out[f.replace(/\.md$/, "")] = await readFile(resolve(dir, f), "utf8");
+  const fragments = await loadMarkdownDir(resolve(SAMPLE_TARGETS, profile));
+  if (fragments.PROJECT === undefined) {
+    throw new Error(
+      `Profile '${profile}' needs examples/sample-targets/${profile}/PROJECT.md to render its sample output`,
+    );
   }
-  return out;
+  return fragments;
 }
 
 export async function renderProfile(profile: string): Promise<string> {

@@ -1,9 +1,9 @@
-import { readFile, readdir, writeFile } from "node:fs/promises";
+import { readFile, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { HEADER, compose, type ComposeResult } from "./compose.js";
+import { HEADER, byteLen, compose, type ComposeResult } from "./compose.js";
 import type { Config } from "./config.js";
 import { scaffoldProject } from "./scaffold.js";
-import { loadTemplate } from "./templateLoader.js";
+import { loadMarkdownDir, loadTemplate } from "./templateLoader.js";
 
 export type RunStatus = "written" | "up-to-date" | "out-of-date";
 
@@ -16,8 +16,11 @@ export interface RunOptions {
 const AGENTS_MD_WARN_BYTES = 12_288;
 
 export async function run(cfg: Config, opts: RunOptions): Promise<RunStatus> {
+  await assertDirectory(cfg.repoDir, "--repo");
+
   const template = await loadTemplate(cfg.templateDir, cfg.profile);
-  let custom = await readCustomFragments(cfg.repoDir);
+  const agentsDir = resolve(cfg.repoDir, ".agents");
+  let custom = await loadMarkdownDir(agentsDir);
 
   const composeOnce = (): ComposeResult =>
     compose({
@@ -37,28 +40,32 @@ export async function run(cfg: Config, opts: RunOptions): Promise<RunStatus> {
         `Skeleton references fragments not found in central templates or .agents/: ${unresolved.join(", ")}`,
       );
     }
+    // compose() treats a blank fragment as absent; never overwrite a file the repo owns.
+    if (custom.PROJECT !== undefined) {
+      throw new Error(".agents/PROJECT.md is empty. Describe the project in it.");
+    }
     if (opts.check) {
       throw new Error(".agents/PROJECT.md is missing. Run without --check to scaffold it.");
     }
     const path = await scaffoldProject(cfg.repoDir);
     console.log(`scaffolded ${path}`);
-    custom = await readCustomFragments(cfg.repoDir);
+    custom = await loadMarkdownDir(agentsDir);
     result = composeOnce();
   }
 
   warnUnreferenced(result, custom, cfg.skip);
 
-  if (result.agentsMd.length > AGENTS_MD_WARN_BYTES) {
-    const kb = (result.agentsMd.length / 1024).toFixed(1);
+  const bytes = byteLen(result.agentsMd);
+  if (bytes > AGENTS_MD_WARN_BYTES) {
     console.error(
-      `warning: composed AGENTS.md is ${kb} KB (threshold ${AGENTS_MD_WARN_BYTES / 1024} KB); long instruction files degrade agent behavior`,
+      `warning: composed AGENTS.md is ${(bytes / 1024).toFixed(1)} KB (threshold ${AGENTS_MD_WARN_BYTES / 1024} KB); long instruction files degrade agent behavior`,
     );
   }
 
   const outPath = resolve(cfg.repoDir, "AGENTS.md");
 
   if (opts.check) {
-    const existing = await readFile(outPath, "utf8").catch(() => null);
+    const existing = await readIfExists(outPath);
     if (existing === result.agentsMd) {
       console.log("AGENTS.md is up to date");
       return "up-to-date";
@@ -78,6 +85,20 @@ export async function run(cfg: Config, opts: RunOptions): Promise<RunStatus> {
   return "written";
 }
 
+async function assertDirectory(path: string, flag: string): Promise<void> {
+  const s = await stat(path).catch(() => null);
+  if (!s?.isDirectory()) throw new Error(`${flag}: not a directory: ${path}`);
+}
+
+async function readIfExists(path: string): Promise<string | null> {
+  try {
+    return await readFile(path, "utf8");
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw err;
+  }
+}
+
 function warnUnreferenced(result: ComposeResult, custom: Record<string, string>, skip: string[]): void {
   const referenced = new Set(result.order.map((e) => e.name));
   for (const name of Object.keys(custom)) {
@@ -90,20 +111,4 @@ function warnUnreferenced(result: ComposeResult, custom: Record<string, string>,
       console.error(`warning: --skip ${name} matches no include in the skeleton`);
     }
   }
-}
-
-export async function readCustomFragments(repoDir: string): Promise<Record<string, string>> {
-  const dir = resolve(repoDir, ".agents");
-  const out: Record<string, string> = {};
-  let files: string[];
-  try {
-    files = await readdir(dir);
-  } catch {
-    return out;
-  }
-  for (const f of files) {
-    if (!f.endsWith(".md")) continue;
-    out[f.replace(/\.md$/, "")] = await readFile(resolve(dir, f), "utf8");
-  }
-  return out;
 }

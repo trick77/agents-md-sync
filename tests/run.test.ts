@@ -55,6 +55,13 @@ describe("buildConfig", () => {
     expect(cfg.templateDir).toBe("/t");
     expect(cfg.skip).toEqual(["BUILD"]);
   });
+
+  it("rejects an empty template dir and a profile that is not a plain name", () => {
+    expect(() => buildConfig({ templateDir: " ", profile: "p" })).toThrow("--template-dir");
+    expect(() => buildConfig({ templateDir: "/t", profile: "" })).toThrow("--profile");
+    expect(() => buildConfig({ templateDir: "/t", profile: "../common" })).toThrow("--profile");
+    expect(() => buildConfig({ templateDir: "/t", profile: "a/b" })).toThrow("--profile");
+  });
 });
 
 describe("run", () => {
@@ -90,6 +97,23 @@ describe("run", () => {
     expect(await exists(join(cfg.repoDir, ".agents", "PROJECT.md"))).toBe(true);
     expect(await readFile(join(cfg.repoDir, "AGENTS.md"), "utf8")).toContain("## Project");
     expect(logSpy.mock.calls.some((c) => String(c[0]).includes("scaffolded"))).toBe(true);
+  });
+
+  it("fails on a blank PROJECT.md instead of overwriting it", async () => {
+    const repo = await makeRepo(false);
+    await mkdir(join(repo, ".agents"));
+    await writeFile(join(repo, ".agents", "PROJECT.md"), "\n\n", "utf8");
+    const cfg = buildConfig({ repo, templateDir: await makeTemplateDir(), profile: "angular" });
+    await expect(run(cfg, { check: false })).rejects.toThrow("PROJECT.md is empty");
+    expect(await readFile(join(repo, ".agents", "PROJECT.md"), "utf8")).toBe("\n\n");
+    expect(await exists(join(repo, "AGENTS.md"))).toBe(false);
+  });
+
+  it("fails when --repo is not an existing directory and creates nothing", async () => {
+    const repo = join(await makeRepo(false), "does-not-exist");
+    const cfg = buildConfig({ repo, templateDir: await makeTemplateDir(), profile: "angular" });
+    await expect(run(cfg, { check: false })).rejects.toThrow("--repo: not a directory");
+    expect(await exists(repo)).toBe(false);
   });
 
   it("--check refuses to scaffold and fails on a missing PROJECT", async () => {
