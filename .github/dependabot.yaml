@@ -1,6 +1,8 @@
 version: 2
 updates:
   - package-ecosystem: npm
+    cooldown:
+      default-days: 7
     directory: "/"
     schedule:
       interval: weekly
@@ -18,6 +20,8 @@ updates:
         versions: [">=6.1.0"]
 
   - package-ecosystem: github-actions
+    cooldown:
+      default-days: 7
     directory: "/"
     schedule:
       interval: weekly
