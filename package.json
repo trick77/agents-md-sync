@@ -1,6 +1,6 @@
 {
   "name": "agents-md-sync",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Compose AGENTS.md from a central markdown template directory and per-repo .agents/ addenda.",
   "license": "MIT",
   "repository": {
